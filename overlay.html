@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Overlay — Rádio Vibe Coding</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green:  #00ff88;
+      --green2: #00cc6a;
+      --dark:   rgba(6, 6, 14, 0.82);
+      --border: rgba(0, 255, 136, 0.25);
+    }
+
+    html, body {
+      width: 1920px;
+      height: 1080px;
+      background: transparent;
+      overflow: hidden;
+      font-family: 'Space Grotesk', sans-serif;
+    }
+
+    /* ── BARRA INFERIOR ──────────────────────────── */
+    .bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 88px;
+      background: var(--dark);
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 0;
+      backdrop-filter: blur(12px);
+    }
+
+    /* Linha verde animada no topo da barra */
+    .bar::before {
+      content: '';
+      position: absolute;
+      top: -2px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--green), transparent);
+      animation: slide 3s linear infinite;
+    }
+    @keyframes slide {
+      from { transform: translateX(-100%); }
+      to   { transform: translateX(100%); }
+    }
+
+    /* ── LOGO / ESTAÇÃO ──────────────────────────── */
+    .station {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 0 28px;
+      border-right: 1px solid var(--border);
+      height: 100%;
+      min-width: 320px;
+    }
+    .pulse-ring {
+      position: relative;
+      width: 12px;
+      height: 12px;
+      flex-shrink: 0;
+    }
+    .pulse-ring::before,
+    .pulse-ring::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: var(--green);
+    }
+    .pulse-ring::after {
+      animation: pulse 1.8s ease-out infinite;
+      opacity: 0;
+    }
+    @keyframes pulse {
+      0%   { transform: scale(1);   opacity: .8; }
+      100% { transform: scale(3.5); opacity: 0;  }
+    }
+    .station-name {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -.3px;
+      line-height: 1.1;
+    }
+    .station-name em {
+      font-style: normal;
+      color: var(--green);
+    }
+    .station-tag {
+      font-size: .65rem;
+      font-weight: 500;
+      color: var(--green);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      opacity: .8;
+    }
+
+    /* ── MÚSICA TOCANDO ──────────────────────────── */
+    .now-playing {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      padding: 0 32px;
+      overflow: hidden;
+    }
+    .np-label {
+      font-size: .62rem;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--green);
+      opacity: .75;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .np-divider {
+      width: 1px;
+      height: 28px;
+      background: var(--border);
+      flex-shrink: 0;
+    }
+    .np-content {
+      overflow: hidden;
+    }
+    .np-music {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      line-height: 1.2;
+      text-transform: capitalize;
+    }
+    .np-by {
+      font-size: .72rem;
+      color: rgba(255,255,255,.45);
+      margin-top: 2px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .np-empty {
+      font-size: .88rem;
+      color: rgba(255,255,255,.3);
+      font-style: italic;
+    }
+
+    /* ── WAVEFORM ANIMADO ────────────────────────── */
+    .waveform {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      padding: 0 28px;
+      height: 32px;
+      border-left: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .wbar {
+      width: 3px;
+      border-radius: 2px;
+      background: var(--green);
+      animation: wv var(--d, .6s) ease-in-out infinite alternate;
+      animation-delay: var(--dl, 0s);
+    }
+    @keyframes wv {
+      from { height: 4px;  opacity: .4; }
+      to   { height: 28px; opacity: 1;  }
+    }
+
+    /* ── LIVE BADGE (canto superior direito) ─────── */
+    .live-badge {
+      position: absolute;
+      top: 32px;
+      right: 36px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 30, 60, 0.15);
+      border: 1px solid rgba(255, 30, 60, 0.5);
+      border-radius: 99px;
+      padding: 8px 18px;
+      backdrop-filter: blur(8px);
+    }
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ff1e3c;
+      animation: blink 1.2s ease-in-out infinite;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: .3; }
+    }
+    .live-text {
+      font-size: .75rem;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: #ff4466;
+      text-transform: uppercase;
+    }
+
+    /* ── PEDIDOS COUNTER ─────────────────────────── */
+    .queue-badge {
+      position: absolute;
+      top: 32px;
+      left: 36px;
+      background: var(--dark);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 18px;
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .queue-count {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--green);
+      line-height: 1;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .queue-label {
+      font-size: .65rem;
+      color: rgba(255,255,255,.4);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- LIVE BADGE -->
+  <div class="live-badge">
+    <span class="live-dot"></span>
+    <span class="live-text">Ao Vivo</span>
+  </div>
+
+  <!-- FILA COUNTER -->
+  <div class="queue-badge">
+    <div class="queue-count" id="queueCount">0</div>
+    <div class="queue-label">na fila</div>
+  </div>
+
+  <!-- BARRA INFERIOR -->
+  <div class="bar">
+
+    <!-- ESTAÇÃO -->
+    <div class="station">
+      <div class="pulse-ring"></div>
+      <div>
+        <div class="station-name">Rádio <em>Vibe Coding</em></div>
+        <div class="station-tag">ao vivo</div>
+      </div>
+    </div>
+
+    <!-- MÚSICA ATUAL -->
+    <div class="now-playing">
+      <span class="np-label">🎵 tocando agora</span>
+      <div class="np-divider"></div>
+      <div class="np-content">
+        <div class="np-music" id="npMusic">
+          <span class="np-empty">aguardando pedidos...</span>
+        </div>
+        <div class="np-by" id="npBy"></div>
+      </div>
+    </div>
+
+    <!-- WAVEFORM -->
+    <div class="waveform" id="waveform"></div>
+
+  </div>
+
+  <script>
+    // ── CONFIG ─────────────────────────────────────
+    // Passe via URL: ?supa=URL&key=ANON_KEY
+    const params  = new URLSearchParams(location.search);
+    const SUPA    = params.get('supa') || 'https://kbctgevxkatxayldpwja.supabase.co';
+    const KEY     = params.get('key')  || '';
+
+    // ── WAVEFORM ───────────────────────────────────
+    const wv = document.getElementById('waveform');
+    for (let i = 0; i < 18; i++) {
+      const b = document.createElement('div');
+      b.className = 'wbar';
+      b.style.setProperty('--d',  (.4 + Math.random() * .5) + 's');
+      b.style.setProperty('--dl', (Math.random() * .4) + 's');
+      wv.appendChild(b);
+    }
+
+    // ── SUPABASE FETCH ─────────────────────────────
+    async function fetchConfig() {
+      if (!KEY) return;
+      try {
+        const res = await fetch(
+          `${SUPA}/rest/v1/radio_config?id=eq.1&select=musica_atual,artista_atual,live_id`,
+          { headers: { apikey: KEY, Authorization: 'Bearer ' + KEY } }
+        );
+        const data = await res.json();
+        if (data && data[0]) updateDisplay(data[0]);
+      } catch(e) {}
+    }
+
+    async function fetchQueue(liveId) {
+      if (!KEY || !liveId) return 0;
+      try {
+        const res = await fetch(
+          `${SUPA}/rest/v1/radio_fila_musicas?live_id=eq.${liveId}&status=eq.aguardando&select=id`,
+          { headers: { apikey: KEY, Authorization: 'Bearer ' + KEY } }
+        );
+        const data = await res.json();
+        return Array.isArray(data) ? data.length : 0;
+      } catch(e) { return 0; }
+    }
+
+    async function updateDisplay(config) {
+      const musicEl = document.getElementById('npMusic');
+      const byEl    = document.getElementById('npBy');
+      const queueEl = document.getElementById('queueCount');
+
+      if (config.musica_atual) {
+        musicEl.innerHTML = config.musica_atual;
+        byEl.textContent  = config.artista_atual
+          ? `pedido por ${config.artista_atual}`
+          : '';
+      } else {
+        musicEl.innerHTML = '<span class="np-empty">aguardando pedidos...</span>';
+        byEl.textContent  = '';
+      }
+
+      const count = await fetchQueue(config.live_id);
+      queueEl.textContent = count;
+    }
+
+    // ── INIT ───────────────────────────────────────
+    fetchConfig();
+    setInterval(fetchConfig, 8000); // atualiza a cada 8s
+  </script>
+
+</body>
+</html>
