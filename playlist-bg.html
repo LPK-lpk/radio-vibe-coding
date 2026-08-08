@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Playlist — Rádio Vibe Coding</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green:  #00ff88;
+      --green2: #00cc6a;
+      --dim:    rgba(0,255,136,.06);
+    }
+
+    html, body {
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      background: #060610;
+      font-family: 'Space Grotesk', sans-serif;
+      color: #fff;
+    }
+
+    /* ── GRID DE FUNDO ──────────────────────── */
+    .grid {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,255,136,.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,255,136,.04) 1px, transparent 1px);
+      background-size: 80px 80px;
+      animation: gridShift 20s linear infinite;
+    }
+    @keyframes gridShift {
+      from { background-position: 0 0; }
+      to   { background-position: 80px 80px; }
+    }
+
+    /* ── GRADIENTE RADIAL CENTER ────────────── */
+    .glow {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 900px 600px at 50% 45%,
+        rgba(0,255,136,.07) 0%,
+        transparent 70%);
+    }
+
+    /* ── CÓDIGO FLUTUANTE ───────────────────── */
+    .code-float {
+      position: absolute;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .78rem;
+      color: rgba(0,255,136,.12);
+      white-space: pre;
+      line-height: 1.8;
+      pointer-events: none;
+      animation: floatUp linear infinite;
+    }
+    @keyframes floatUp {
+      from { transform: translateY(120px); opacity: 0; }
+      10%  { opacity: 1; }
+      90%  { opacity: 1; }
+      to   { transform: translateY(-120px); opacity: 0; }
+    }
+
+    /* ── WAVEFORM GRANDE ────────────────────── */
+    .big-wave {
+      position: absolute;
+      bottom: 110px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: flex-end;
+      gap: 5px;
+      height: 80px;
+    }
+    .wbar {
+      width: 4px;
+      border-radius: 3px;
+      background: var(--green);
+      opacity: .18;
+      animation: wv var(--d,.6s) ease-in-out infinite alternate;
+      animation-delay: var(--dl,0s);
+    }
+    @keyframes wv {
+      from { height: 8px; }
+      to   { height: var(--h,40px); }
+    }
+
+    /* ── CENTRO ─────────────────────────────── */
+    .center {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+    }
+
+    .badge {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(0,255,136,.08);
+      border: 1px solid rgba(0,255,136,.2);
+      border-radius: 99px;
+      padding: 8px 22px;
+      font-size: .72rem;
+      font-weight: 600;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--green);
+      margin-bottom: 8px;
+    }
+    .badge-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: blink 2s ease-in-out infinite;
+    }
+    @keyframes blink {
+      0%,100% { opacity: 1; }
+      50%      { opacity: .3; }
+    }
+
+    .title {
+      font-size: 7rem;
+      font-weight: 800;
+      letter-spacing: -3px;
+      line-height: .95;
+      text-align: center;
+    }
+    .title em {
+      font-style: normal;
+      color: var(--green);
+      text-shadow: 0 0 80px rgba(0,255,136,.4);
+    }
+
+    .subtitle {
+      font-size: 1.2rem;
+      font-weight: 300;
+      color: rgba(255,255,255,.35);
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      margin-top: 8px;
+    }
+
+    /* ── LINHA DECORATIVA ───────────────────── */
+    .line {
+      width: 280px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--green), transparent);
+      margin-top: 24px;
+      opacity: .4;
+    }
+
+    .hint {
+      font-size: .8rem;
+      color: rgba(255,255,255,.2);
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 1px;
+      margin-top: 8px;
+    }
+    .hint span {
+      color: rgba(0,255,136,.4);
+    }
+
+    /* ── BARRA INFERIOR ─────────────────────── */
+    .bottom-bar {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 56px;
+      background: rgba(0,255,136,.04);
+      border-top: 1px solid rgba(0,255,136,.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 40px;
+    }
+    .bottom-item {
+      font-size: .68rem;
+      color: rgba(255,255,255,.2);
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+    }
+    .bottom-item span { color: rgba(0,255,136,.4); }
+
+    /* ── CANTOS DECORATIVOS ─────────────────── */
+    .corner {
+      position: absolute;
+      width: 40px; height: 40px;
+      opacity: .3;
+    }
+    .corner.tl { top: 24px;  left: 24px;
+      border-top: 2px solid var(--green); border-left: 2px solid var(--green); }
+    .corner.tr { top: 24px;  right: 24px;
+      border-top: 2px solid var(--green); border-right: 2px solid var(--green); }
+    .corner.bl { bottom: 64px; left: 24px;
+      border-bottom: 2px solid var(--green); border-left: 2px solid var(--green); }
+    .corner.br { bottom: 64px; right: 24px;
+      border-bottom: 2px solid var(--green); border-right: 2px solid var(--green); }
+  </style>
+</head>
+<body>
+
+  <div class="grid"></div>
+  <div class="glow"></div>
+
+  <!-- CÓDIGO FLUTUANTE (gerado via JS) -->
+
+  <!-- WAVEFORM -->
+  <div class="big-wave" id="wave"></div>
+
+  <!-- CANTOS -->
+  <div class="corner tl"></div>
+  <div class="corner tr"></div>
+  <div class="corner bl"></div>
+  <div class="corner br"></div>
+
+  <!-- CENTRO -->
+  <div class="center">
+    <div class="badge">
+      <span class="badge-dot"></span>
+      Playlist Mode
+    </div>
+    <div class="title">
+      Rádio<br><em>Vibe Coding</em>
+    </div>
+    <div class="line"></div>
+    <div class="subtitle">música . código . criatividade</div>
+    <div class="hint">
+      envie <span>pedir: música - artista</span> no WhatsApp
+    </div>
+  </div>
+
+  <!-- BARRA INFERIOR -->
+  <div class="bottom-bar">
+    <div class="bottom-item">📻 <span>Rádio Vibe Coding</span></div>
+    <div class="bottom-item">🎵 <span>Pedidos via WhatsApp</span></div>
+    <div class="bottom-item">💻 <span>Vibe Coding ao vivo</span></div>
+  </div>
+
+  <script>
+    // Waveform
+    const wave = document.getElementById('wave');
+    for (let i = 0; i < 60; i++) {
+      const b = document.createElement('div');
+      b.className = 'wbar';
+      const h = 12 + Math.random() * 68;
+      b.style.setProperty('--h', h + 'px');
+      b.style.setProperty('--d', (.4 + Math.random() * .7) + 's');
+      b.style.setProperty('--dl', (Math.random() * .6) + 's');
+      wave.appendChild(b);
+    }
+
+    // Código flutuante
+    const snippets = [
+      'const radio = new Radio();\nradio.play();',
+      'while(coding) {\n  vibe++;\n}',
+      'npm run stream',
+      '🎵 pedir: lo-fi hip hop',
+      'git commit -m "add music"',
+      'SELECT * FROM fila\nWHERE status = \'aguardando\'',
+      'console.log("ao vivo! 🔴")',
+      'fetch("/radio-live-start")',
+      '// TODO: mais músicas',
+      'export default Vibe;',
+    ];
+
+    for (let i = 0; i < 8; i++) {
+      const el = document.createElement('div');
+      el.className = 'code-float';
+      el.textContent = snippets[i % snippets.length];
+      el.style.left = (5 + Math.random() * 88) + '%';
+      el.style.top  = (Math.random() * 80) + '%';
+      el.style.animationDuration = (18 + Math.random() * 20) + 's';
+      el.style.animationDelay   = -(Math.random() * 20) + 's';
+      document.body.appendChild(el);
+    }
+  </script>
+
+</body>
+</html>
