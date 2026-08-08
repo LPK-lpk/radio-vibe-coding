@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rádio Vibe Coding — Painel DJ</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #080810;
+      --surface:  #0f0f1a;
+      --card:     #16162a;
+      --border:   #2a2a45;
+      --green:    #00ff88;
+      --green-dim:#00cc6a;
+      --red:      #ff3366;
+      --yellow:   #ffcc00;
+      --text:     #e8e8f8;
+      --muted:    #6b6b90;
+      --radius:   14px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Space Grotesk', sans-serif;
+      min-height: 100vh;
+      padding: 24px 16px 60px;
+    }
+
+    /* ── HEADER ────────────────────────────────────── */
+    header {
+      max-width: 720px;
+      margin: 0 auto 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .station-name {
+      font-size: clamp(1.2rem, 4vw, 1.6rem);
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+    .station-name span { color: var(--green); }
+
+    /* Live badge */
+    .live-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 99px;
+      font-size: .8rem;
+      font-weight: 600;
+      letter-spacing: .5px;
+      text-transform: uppercase;
+      transition: all .4s;
+    }
+    .live-badge.offline {
+      background: rgba(107,107,144,.15);
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+    .live-badge.online {
+      background: rgba(255,51,102,.12);
+      border: 1px solid rgba(255,51,102,.4);
+      color: var(--red);
+    }
+    .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+    .live-badge.online .dot {
+      animation: pulse-dot 1.2s ease-in-out infinite;
+    }
+    @keyframes pulse-dot {
+      0%,100% { opacity: 1; transform: scale(1); }
+      50%      { opacity: .4; transform: scale(.7); }
+    }
+
+    /* ── WAVEFORM ──────────────────────────────────── */
+    .waveform {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      height: 32px;
+      margin: 0 auto 32px;
+      max-width: 720px;
+    }
+    .bar {
+      flex: 1;
+      border-radius: 3px;
+      background: var(--green);
+      opacity: .15;
+      transform-origin: bottom;
+      transition: opacity .4s;
+    }
+    body.is-live .bar {
+      opacity: 1;
+      animation: wave var(--dur, .8s) ease-in-out infinite alternate;
+      animation-delay: var(--delay, 0s);
+    }
+    @keyframes wave {
+      from { transform: scaleY(.15); }
+      to   { transform: scaleY(1); }
+    }
+
+    /* ── LAYOUT ────────────────────────────────────── */
+    .grid {
+      max-width: 720px;
+      margin: 0 auto;
+      display: grid;
+      gap: 16px;
+    }
+
+    /* ── CARD ──────────────────────────────────────── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+    }
+    .card-label {
+      font-size: .7rem;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+
+    /* ── FORM ──────────────────────────────────────── */
+    .form-row { display: grid; gap: 12px; }
+    .form-row + .form-row { margin-top: 12px; }
+
+    label {
+      font-size: .8rem;
+      color: var(--muted);
+      display: block;
+      margin-bottom: 4px;
+    }
+    input, textarea {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: .9rem;
+      padding: 10px 14px;
+      outline: none;
+      transition: border-color .2s;
+    }
+    input:focus, textarea:focus {
+      border-color: var(--green);
+    }
+    textarea { resize: vertical; min-height: 70px; }
+
+    /* ── BUTTONS ───────────────────────────────────── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: .9rem;
+      font-weight: 600;
+      padding: 12px 20px;
+      transition: all .2s;
+      width: 100%;
+    }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+    .btn:active:not(:disabled) { transform: scale(.97); }
+
+    .btn-green {
+      background: var(--green);
+      color: #000;
+    }
+    .btn-green:hover:not(:disabled) { background: var(--green-dim); }
+
+    .btn-red {
+      background: rgba(255,51,102,.12);
+      border: 1px solid rgba(255,51,102,.35);
+      color: var(--red);
+    }
+    .btn-red:hover:not(:disabled) { background: rgba(255,51,102,.22); }
+
+    .btn-ghost {
+      background: rgba(255,255,255,.05);
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    .btn-ghost:hover:not(:disabled) { background: rgba(255,255,255,.09); }
+
+    .btn-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    /* ── STATUS STRIP ──────────────────────────────── */
+    .status-strip {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .stat {
+      flex: 1;
+      min-width: 100px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      text-align: center;
+    }
+    .stat-value {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--green);
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    .stat-label {
+      font-size: .72rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .8px;
+    }
+
+    /* ── QUEUE LIST ────────────────────────────────── */
+    .queue-list { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+    .queue-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+    }
+    .queue-pos {
+      font-size: .75rem;
+      font-weight: 700;
+      color: var(--green);
+      min-width: 20px;
+    }
+    .queue-music { flex: 1; font-size: .88rem; }
+    .queue-by { font-size: .75rem; color: var(--muted); }
+    .queue-empty {
+      text-align: center;
+      padding: 24px;
+      color: var(--muted);
+      font-size: .88rem;
+    }
+
+    /* ── TOAST ─────────────────────────────────────── */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 20px;
+      font-size: .88rem;
+      transition: transform .3s ease;
+      z-index: 99;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+    #toast.show { transform: translateX(-50%) translateY(0); }
+    #toast.ok   { border-color: var(--green); color: var(--green); }
+    #toast.err  { border-color: var(--red);   color: var(--red); }
+
+    /* ── CONFIG MODAL ──────────────────────────────── */
+    .modal-backdrop {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.7);
+      z-index: 50;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      width: 100%;
+      max-width: 480px;
+    }
+    .modal h2 { font-size: 1.1rem; margin-bottom: 20px; }
+    .modal .btn-row { margin-top: 20px; }
+
+    /* ── FOOTER ────────────────────────────────────── */
+    .config-btn {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 99px;
+      color: var(--muted);
+      cursor: pointer;
+      font-family: inherit;
+      font-size: .8rem;
+      padding: 8px 16px;
+      transition: color .2s;
+    }
+    .config-btn:hover { color: var(--text); }
+  </style>
+</head>
+<body>
+
+<!-- WAVEFORM -->
+<div class="waveform" id="waveform"></div>
+
+<!-- HEADER -->
+<header>
+  <div class="station-name">📻 Rádio <span>Vibe Coding</span></div>
+  <div class="live-badge offline" id="liveBadge">
+    <span class="dot"></span>
+    <span id="liveText">Offline</span>
+  </div>
+</header>
+
+<!-- MAIN -->
+<div class="grid">
+
+  <!-- STATUS -->
+  <div class="status-strip">
+    <div class="stat">
+      <div class="stat-value" id="statOuvintes">—</div>
+      <div class="stat-label">Ouvintes</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value" id="statFila">—</div>
+      <div class="stat-label">Na fila</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value" id="statLives">—</div>
+      <div class="stat-label">Lives</div>
+    </div>
+  </div>
+
+  <!-- INICIAR LIVE -->
+  <div class="card" id="cardIniciar">
+    <div class="card-label">🎙️ Iniciar Live</div>
+    <div class="form-row">
+      <div>
+        <label>Título da live</label>
+        <input id="titulo" type="text" placeholder="Ex: Vibe Coding — Sexta à noite" />
+      </div>
+    </div>
+    <div class="form-row">
+      <div>
+        <label>Descrição (opcional)</label>
+        <textarea id="descricao" placeholder="Hoje vamos codar com lofi e React..."></textarea>
+      </div>
+    </div>
+    <div class="form-row">
+      <div>
+        <label>URL YouTube Live</label>
+        <input id="youtube_url" type="url" placeholder="https://youtube.com/live/..." />
+      </div>
+    </div>
+    <div class="form-row">
+      <div>
+        <label>URL Owncast (opcional)</label>
+        <input id="owncast_url" type="url" placeholder="https://seu-owncast.com" />
+      </div>
+    </div>
+    <div style="margin-top:16px">
+      <button class="btn btn-green" id="btnIniciar" onclick="iniciarLive()">
+        🔴 Iniciar Live
+      </button>
+    </div>
+  </div>
+
+  <!-- CONTROLES LIVE (visível só quando ao vivo) -->
+  <div class="card" id="cardControles" style="display:none">
+    <div class="card-label">🎛️ Controles</div>
+    <div id="musicaAtual" style="margin-bottom:16px; color:var(--muted); font-size:.88rem">
+      Nenhuma música tocando ainda
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="proximaMusica()">
+        ⏭️ Próxima Música
+      </button>
+      <button class="btn btn-red" onclick="encerrarLive()">
+        ⏹️ Encerrar Live
+      </button>
+    </div>
+  </div>
+
+  <!-- FILA -->
+  <div class="card">
+    <div class="card-label">🎵 Fila de Pedidos</div>
+    <div class="queue-list" id="filaList">
+      <div class="queue-empty">Nenhum pedido ainda</div>
+    </div>
+  </div>
+
+</div><!-- /grid -->
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- CONFIG BUTTON -->
+<button class="config-btn" onclick="abrirConfig()">⚙️ Configurações</button>
+
+<!-- CONFIG MODAL -->
+<div class="modal-backdrop" id="modalConfig">
+  <div class="modal">
+    <h2>⚙️ Configurações</h2>
+    <div class="form-row">
+      <div>
+        <label>URL do n8n</label>
+        <input id="cfgN8n" type="url" placeholder="https://n8n-n8n-start.ndjgby.easypanel.host" />
+      </div>
+    </div>
+    <div class="form-row" style="margin-top:12px">
+      <div>
+        <label>URL do Supabase</label>
+        <input id="cfgSupa" type="url" placeholder="https://xyzabc.supabase.co" />
+      </div>
+    </div>
+    <div class="form-row" style="margin-top:12px">
+      <div>
+        <label>Supabase Anon Key</label>
+        <input id="cfgKey" type="password" placeholder="eyJ..." />
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="fecharConfig()">Cancelar</button>
+      <button class="btn btn-green" onclick="salvarConfig()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── CONFIG ─────────────────────────────────────────
+  const CFG = {
+    n8n:  localStorage.getItem('rvc_n8n')  || 'https://n8n-n8n-start.ndjgby.easypanel.host',
+    supa: localStorage.getItem('rvc_supa') || 'https://kbctgevxkatxayldpwja.supabase.co',
+    key:  localStorage.getItem('rvc_key')  || '',
+  };
+
+  // ── WAVEFORM BARS ──────────────────────────────────
+  const waveEl = document.getElementById('waveform');
+  for (let i = 0; i < 40; i++) {
+    const b = document.createElement('div');
+    b.className = 'bar';
+    const h = 15 + Math.random() * 85;
+    b.style.height = h + '%';
+    b.style.setProperty('--dur',   (.5 + Math.random() * .8) + 's');
+    b.style.setProperty('--delay', (Math.random() * .6) + 's');
+    waveEl.appendChild(b);
+  }
+
+  // ── STATE ──────────────────────────────────────────
+  let isLive = false;
+  let liveId  = null;
+
+  function setLiveState(live) {
+    isLive = live;
+    document.body.classList.toggle('is-live', live);
+    const badge = document.getElementById('liveBadge');
+    badge.className = 'live-badge ' + (live ? 'online' : 'offline');
+    document.getElementById('liveText').textContent = live ? 'Ao Vivo' : 'Offline';
+    document.getElementById('cardIniciar').style.display  = live ? 'none' : '';
+    document.getElementById('cardControles').style.display = live ? '' : 'none';
+  }
+
+  // ── TOAST ──────────────────────────────────────────
+  let toastTimer;
+  function toast(msg, type = 'ok') {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = 'show ' + type;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.className = '', 3000);
+  }
+
+  // ── WEBHOOKS ───────────────────────────────────────
+  async function post(path, body = {}) {
+    const res = await fetch(CFG.n8n + path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    return res.json().catch(() => ({}));
+  }
+
+  async function iniciarLive() {
+    const titulo = document.getElementById('titulo').value.trim();
+    if (!titulo) { toast('Coloque um título para a live', 'err'); return; }
+    const btn = document.getElementById('btnIniciar');
+    btn.disabled = true;
+    btn.textContent = 'Iniciando...';
+    try {
+      const data = await post('/webhook/radio-live-start', {
+        titulo,
+        descricao:   document.getElementById('descricao').value.trim(),
+        youtube_url: document.getElementById('youtube_url').value.trim(),
+        owncast_url: document.getElementById('owncast_url').value.trim(),
+      });
+      liveId = data.live_id ?? null;
+      setLiveState(true);
+      toast('🔴 Live iniciada! Ouvintes notificados.');
+      carregarDados();
+    } catch(e) {
+      toast('Erro ao iniciar live', 'err');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '🔴 Iniciar Live';
+    }
+  }
+
+  async function encerrarLive() {
+    if (!confirm('Encerrar a live agora?')) return;
+    try {
+      await post('/webhook/radio-live-end');
+      setLiveState(false);
+      liveId = null;
+      document.getElementById('musicaAtual').textContent = 'Nenhuma música tocando ainda';
+      toast('⏹️ Live encerrada. Ouvintes notificados.');
+      carregarDados();
+    } catch(e) {
+      toast('Erro ao encerrar live', 'err');
+    }
+  }
+
+  async function proximaMusica() {
+    try {
+      const data = await post('/webhook/radio-proxima-musica');
+      if (data.status === 'ok' && data.musica) {
+        document.getElementById('musicaAtual').innerHTML =
+          '🎵 <strong>' + data.musica + '</strong>';
+        toast('⏭️ Próxima música anunciada!');
+        carregarDados();
+      } else if (data.message === 'Fila vazia') {
+        toast('Fila vazia — sem próxima música', 'err');
+      } else {
+        toast(data.message || 'Sem live ativa', 'err');
+      }
+    } catch(e) {
+      toast('Erro ao avançar fila', 'err');
+    }
+  }
+
+  // ── SUPABASE ───────────────────────────────────────
+  async function supaGet(table, params = '') {
+    if (!CFG.key) return null;
+    const res = await fetch(`${CFG.supa}/rest/v1/${table}?${params}`, {
+      headers: {
+        'apikey': CFG.key,
+        'Authorization': 'Bearer ' + CFG.key,
+      }
+    });
+    return res.json();
+  }
+
+  async function carregarDados() {
+    try {
+      // Config (status live)
+      const config = await supaGet('radio_config', 'id=eq.1&select=status,live_id,musica_atual');
+      if (config && config[0]) {
+        const c = config[0];
+        setLiveState(c.status === 'ao_vivo');
+        if (c.musica_atual) {
+          document.getElementById('musicaAtual').innerHTML =
+            '🎵 <strong>' + c.musica_atual + '</strong>';
+        }
+        liveId = c.live_id;
+      }
+
+      // Ouvintes
+      const ouvintes = await supaGet('radio_ouvintes', 'ativo=eq.true&select=id');
+      if (ouvintes) document.getElementById('statOuvintes').textContent = ouvintes.length;
+
+      // Lives
+      const lives = await supaGet('radio_lives', 'select=id');
+      if (lives) document.getElementById('statLives').textContent = lives.length;
+
+      // Fila
+      const filaParams = liveId
+        ? `live_id=eq.${liveId}&status=eq.aguardando&select=musica,nome_solicitante&order=solicitado_em.asc`
+        : 'status=eq.aguardando&select=musica,nome_solicitante&order=solicitado_em.asc&limit=0';
+      const fila = await supaGet('radio_fila_musicas', filaParams);
+      if (fila !== null) {
+        document.getElementById('statFila').textContent = fila.length;
+        renderFila(fila);
+      }
+    } catch(e) {
+      console.warn('Erro ao carregar dados Supabase:', e);
+    }
+  }
+
+  function renderFila(fila) {
+    const el = document.getElementById('filaList');
+    if (!fila || fila.length === 0) {
+      el.innerHTML = '<div class="queue-empty">Nenhum pedido ainda</div>';
+      return;
+    }
+    el.innerHTML = fila.map((f, i) => `
+      <div class="queue-item">
+        <span class="queue-pos">${i + 1}</span>
+        <div>
+          <div class="queue-music">${f.musica}</div>
+          <div class="queue-by">pedido por ${f.nome_solicitante ?? '—'}</div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // ── CONFIG MODAL ───────────────────────────────────
+  function abrirConfig() {
+    document.getElementById('cfgN8n').value  = CFG.n8n;
+    document.getElementById('cfgSupa').value = CFG.supa;
+    document.getElementById('cfgKey').value  = CFG.key;
+    document.getElementById('modalConfig').classList.add('open');
+  }
+  function fecharConfig() {
+    document.getElementById('modalConfig').classList.remove('open');
+  }
+  function salvarConfig() {
+    CFG.n8n  = document.getElementById('cfgN8n').value.trim().replace(/\/$/, '');
+    CFG.supa = document.getElementById('cfgSupa').value.trim().replace(/\/$/, '');
+    CFG.key  = document.getElementById('cfgKey').value.trim();
+    localStorage.setItem('rvc_n8n',  CFG.n8n);
+    localStorage.setItem('rvc_supa', CFG.supa);
+    localStorage.setItem('rvc_key',  CFG.key);
+    fecharConfig();
+    toast('Configurações salvas!');
+    carregarDados();
+  }
+
+  // Fechar modal clicando fora
+  document.getElementById('modalConfig').addEventListener('click', function(e) {
+    if (e.target === this) fecharConfig();
+  });
+
+  // ── INIT ───────────────────────────────────────────
+  carregarDados();
+  setInterval(carregarDados, 30000); // atualiza a cada 30s
+</script>
+</body>
+</html>
