@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Datashow — Rádio Vibe Coding</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green:  #00ff88;
+      --red:    #ff3366;
+      --gold:   #ffd700;
+      --purple: #c084fc;
+    }
+
+    html, body {
+      width: 100vw; height: 100vh;
+      overflow: hidden;
+      background: #05050d;
+      font-family: 'Space Grotesk', sans-serif;
+      color: #fff;
+      cursor: none;
+    }
+
+    /* ── SLIDESHOW ───────────────────────────── */
+    .slide {
+      position: absolute;
+      inset: 0;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      opacity: 0;
+      transition: opacity 1.2s ease;
+    }
+    .slide.active { opacity: 1; }
+    .slide.prev   { opacity: 0; }
+
+    /* ── VÍDEO ───────────────────────────────── */
+    #videoEl {
+      position: absolute;
+      inset: 0;
+      width: 100%; height: 100%;
+      object-fit: cover;
+      display: none;
+    }
+
+    /* ── FUNDO PADRÃO (sem imagem) ───────────── */
+    .bg-default {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 80% 60% at 50% 40%, rgba(0,255,136,.06), transparent 70%);
+    }
+    .grid-bg {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,255,136,.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,255,136,.03) 1px, transparent 1px);
+      background-size: 60px 60px;
+    }
+
+    /* ── OVERLAY ESCURO sobre imagem ─────────── */
+    .img-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(0,0,0,.85) 0%, rgba(0,0,0,.2) 40%, transparent 100%);
+    }
+
+    /* ── BARRA INFERIOR ──────────────────────── */
+    .bottom-bar {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 80px;
+      background: rgba(0,0,0,.75);
+      border-top: 1px solid rgba(0,255,136,.2);
+      backdrop-filter: blur(16px);
+      display: flex;
+      align-items: center;
+      padding: 0 40px;
+      gap: 24px;
+      z-index: 10;
+    }
+    .bar-station {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-right: 1px solid rgba(255,255,255,.1);
+      padding-right: 24px;
+      flex-shrink: 0;
+    }
+    .bar-pulse {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: var(--red);
+      animation: blink 1.2s infinite;
+      flex-shrink: 0;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+    .bar-name { font-size: 1rem; font-weight: 700; }
+    .bar-name span { color: var(--green); }
+    .bar-song {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      overflow: hidden;
+    }
+    .bar-label { font-size: .7rem; color: var(--green); letter-spacing: 2px; text-transform: uppercase; white-space: nowrap; }
+    .bar-title { font-size: 1rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .bar-artist { font-size: .8rem; color: rgba(255,255,255,.5); white-space: nowrap; }
+
+    /* ── WAVEFORM na barra ───────────────────── */
+    .bar-wave { display: flex; align-items: center; gap: 2px; height: 24px; flex-shrink: 0; }
+    .bw { width: 3px; border-radius: 2px; background: var(--green); animation: bwv var(--d,.6s) ease-in-out infinite alternate; animation-delay: var(--dl,0s); }
+    @keyframes bwv { from{height:3px} to{height:24px} }
+
+    /* ── MODO HOMENAGEM ──────────────────────── */
+    #modoHomenagem {
+      position: absolute;
+      inset: 0;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 20;
+      background: linear-gradient(135deg, #0a0015 0%, #05050d 50%, #0a1500 100%);
+      text-align: center;
+      padding: 40px;
+    }
+    #modoHomenagem.ativo { display: flex; }
+
+    .hom-badge {
+      font-size: .8rem;
+      font-weight: 700;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: var(--gold);
+      border: 1px solid rgba(255,215,0,.3);
+      border-radius: 99px;
+      padding: 8px 24px;
+      margin-bottom: 32px;
+      animation: glow-gold 2s ease-in-out infinite;
+    }
+    @keyframes glow-gold {
+      0%,100% { box-shadow: 0 0 10px rgba(255,215,0,.2); }
+      50%      { box-shadow: 0 0 30px rgba(255,215,0,.5); }
+    }
+
+    .hom-emoji { font-size: 6rem; margin-bottom: 16px; animation: bounce 1s ease-in-out infinite; }
+    @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-12px)} }
+
+    .hom-title {
+      font-size: clamp(1.5rem, 4vw, 2.5rem);
+      font-weight: 300;
+      color: rgba(255,255,255,.7);
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+
+    .hom-name {
+      font-size: clamp(4rem, 12vw, 9rem);
+      font-weight: 800;
+      letter-spacing: -2px;
+      line-height: .9;
+      color: var(--gold);
+      text-shadow: 0 0 60px rgba(255,215,0,.4);
+      margin-bottom: 24px;
+      animation: name-glow 3s ease-in-out infinite;
+    }
+    @keyframes name-glow {
+      0%,100% { text-shadow: 0 0 40px rgba(255,215,0,.3); }
+      50%      { text-shadow: 0 0 80px rgba(255,215,0,.6), 0 0 120px rgba(255,215,0,.3); }
+    }
+
+    .hom-musica {
+      font-size: clamp(1rem, 2vw, 1.4rem);
+      color: rgba(255,255,255,.5);
+      margin-bottom: 8px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .hom-musica span { color: var(--green); }
+
+    /* ── CONFETE ─────────────────────────────── */
+    #confete { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 25; }
+    .confete-particle {
+      position: absolute;
+      width: 8px; height: 8px;
+      border-radius: 2px;
+      animation: confete-fall linear infinite;
+    }
+    @keyframes confete-fall {
+      0%   { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+    }
+
+    /* ── TÍTULO EVENTO (topo) ────────────────── */
+    .titulo-evento {
+      position: absolute;
+      top: 24px; left: 50%;
+      transform: translateX(-50%);
+      font-size: 1.1rem;
+      font-weight: 600;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.4);
+      z-index: 10;
+      white-space: nowrap;
+    }
+
+    /* ── RELÓGIO ─────────────────────────────── */
+    .relogio {
+      position: absolute;
+      top: 24px; right: 40px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1rem;
+      color: rgba(255,255,255,.25);
+      z-index: 10;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- FUNDO PADRÃO -->
+  <div class="bg-default"></div>
+  <div class="grid-bg"></div>
+
+  <!-- SLIDES (imagens) -->
+  <div id="slidesContainer"></div>
+
+  <!-- VÍDEO -->
+  <video id="videoEl" autoplay loop muted playsinline></video>
+
+  <!-- OVERLAY ESCURO -->
+  <div class="img-overlay" id="imgOverlay" style="display:none"></div>
+
+  <!-- TÍTULO EVENTO -->
+  <div class="titulo-evento" id="tituloEvento"></div>
+
+  <!-- RELÓGIO -->
+  <div class="relogio" id="relogio"></div>
+
+  <!-- MODO HOMENAGEM -->
+  <div id="modoHomenagem">
+    <div id="confete"></div>
+    <div class="hom-badge">✨ Homenagem Especial ✨</div>
+    <div class="hom-emoji">🎂</div>
+    <div class="hom-title">Feliz Aniversário</div>
+    <div class="hom-name" id="homNome">—</div>
+    <div class="hom-musica">🎵 <span id="homMusica">—</span></div>
+  </div>
+
+  <!-- BARRA INFERIOR -->
+  <div class="bottom-bar">
+    <div class="bar-station">
+      <div class="bar-pulse"></div>
+      <div class="bar-name">Rádio <span>LPK</span></div>
+    </div>
+    <div class="bar-song">
+      <span class="bar-label">🎵 agora</span>
+      <span class="bar-title" id="barTitle">Aguardando...</span>
+      <span class="bar-artist" id="barArtist"></span>
+    </div>
+    <div class="bar-wave" id="barWave"></div>
+  </div>
+
+<script>
+  // ── CONFIG ──────────────────────────────────
+  const params  = new URLSearchParams(location.search);
+  const SUPA    = params.get('supa') || 'https://kbctgevxkatxayldpwja.supabase.co';
+  const KEY     = params.get('key')  || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtiY3RnZXZ4a2F0eGF5bGRwd2phIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxNDUyNDMsImV4cCI6MjEwMTcyMTI0M30.BpeBpSdwhoKxwx4xAj4hMg7ZftqNtJhKlBS2hx3mqDo';
+
+  // ── WAVEFORM ─────────────────────────────────
+  const bwEl = document.getElementById('barWave');
+  for (let i = 0; i < 14; i++) {
+    const b = document.createElement('div'); b.className = 'bw';
+    b.style.setProperty('--d',  (.3 + Math.random() * .5) + 's');
+    b.style.setProperty('--dl', (Math.random() * .4) + 's');
+    bwEl.appendChild(b);
+  }
+
+  // ── RELÓGIO ───────────────────────────────────
+  function atualizarRelogio() {
+    const n = new Date();
+    document.getElementById('relogio').textContent =
+      n.getHours().toString().padStart(2,'0') + ':' +
+      n.getMinutes().toString().padStart(2,'0');
+  }
+  atualizarRelogio();
+  setInterval(atualizarRelogio, 10000);
+
+  // ── SLIDESHOW ─────────────────────────────────
+  let slides = [], currentSlide = 0, slideTimer = null;
+
+  function criarSlides(images) {
+    const container = document.getElementById('slidesContainer');
+    container.innerHTML = '';
+    slides = [];
+    images.forEach((img, i) => {
+      const el = document.createElement('div');
+      el.className = 'slide' + (i === 0 ? ' active' : '');
+      el.style.backgroundImage = `url(${img.url || img})`;
+      container.appendChild(el);
+      slides.push(el);
+    });
+    document.getElementById('imgOverlay').style.display = slides.length ? '' : 'none';
+  }
+
+  function avancarSlide() {
+    if (slides.length < 2) return;
+    const prev = slides[currentSlide];
+    currentSlide = (currentSlide + 1) % slides.length;
+    prev.classList.remove('active');
+    slides[currentSlide].classList.add('active');
+  }
+
+  function iniciarSlideshow(images, interval) {
+    criarSlides(images);
+    clearInterval(slideTimer);
+    if (slides.length > 1) {
+      slideTimer = setInterval(avancarSlide, (interval || 5) * 1000);
+    }
+  }
+
+  // ── CONFETE ────────────────────────────────────
+  let confeteTimer = null;
+  const cores = ['#ffd700','#ff3366','#00ff88','#c084fc','#38bdf8','#fb923c'];
+
+  function iniciarConfete() {
+    const container = document.getElementById('confete');
+    container.innerHTML = '';
+    for (let i = 0; i < 80; i++) {
+      const p = document.createElement('div');
+      p.className = 'confete-particle';
+      p.style.left = Math.random() * 100 + 'vw';
+      p.style.background = cores[Math.floor(Math.random() * cores.length)];
+      p.style.width  = (6 + Math.random() * 8) + 'px';
+      p.style.height = (6 + Math.random() * 8) + 'px';
+      p.style.animationDuration = (3 + Math.random() * 4) + 's';
+      p.style.animationDelay   = -(Math.random() * 4) + 's';
+      container.appendChild(p);
+    }
+  }
+
+  // ── MODO HOMENAGEM ────────────────────────────
+  let modoAtual = 'normal';
+
+  function ativarHomenagem(homenagem) {
+    if (modoAtual === 'homenagem') return;
+    modoAtual = 'homenagem';
+    document.getElementById('homNome').textContent = homenagem.aniversariante || '—';
+    document.getElementById('homMusica').textContent = homenagem.titulo_musica || '—';
+    document.getElementById('modoHomenagem').classList.add('ativo');
+    iniciarConfete();
+  }
+
+  function desativarHomenagem() {
+    if (modoAtual === 'normal') return;
+    modoAtual = 'normal';
+    document.getElementById('modoHomenagem').classList.remove('ativo');
+    document.getElementById('confete').innerHTML = '';
+  }
+
+  // ── SUPABASE ──────────────────────────────────
+  async function supaGet(table, params = '') {
+    try {
+      const res = await fetch(`${SUPA}/rest/v1/${table}?${params}`, {
+        headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY }
+      });
+      return res.json();
+    } catch(e) { return null; }
+  }
+
+  let lastConfig = null, lastDatashow = null;
+
+  async function atualizar() {
+    // Música atual
+    const config = await supaGet('radio_config', 'id=eq.1&select=musica_atual,artista_atual');
+    if (config && config[0]) {
+      const c = config[0];
+      if (c.musica_atual) {
+        document.getElementById('barTitle').textContent  = c.musica_atual;
+        document.getElementById('barArtist').textContent = c.artista_atual || '';
+      } else {
+        document.getElementById('barTitle').textContent  = 'Aguardando...';
+        document.getElementById('barArtist').textContent = '';
+      }
+    }
+
+    // Homenagem ativa
+    const homenagem = await supaGet('radio_homenagens', 'status=eq.tocando&select=aniversariante,titulo_musica&limit=1');
+    if (homenagem && homenagem.length > 0) {
+      ativarHomenagem(homenagem[0]);
+    } else {
+      desativarHomenagem();
+    }
+
+    // Config datashow
+    const ds = await supaGet('radio_datashow', 'id=eq.1&select=mode,images,video_url,interval_seconds,titulo_evento');
+    if (ds && ds[0]) {
+      const d = ds[0];
+      const dsStr = JSON.stringify(d);
+      if (dsStr !== lastDatashow) {
+        lastDatashow = dsStr;
+
+        // Título do evento
+        const tituloEl = document.getElementById('tituloEvento');
+        tituloEl.textContent = d.titulo_evento || '';
+
+        // Modo
+        const images = Array.isArray(d.images) ? d.images : [];
+        const videoEl = document.getElementById('videoEl');
+
+        if (d.mode === 'video' && d.video_url) {
+          videoEl.src = d.video_url;
+          videoEl.style.display = 'block';
+          clearInterval(slideTimer);
+          document.getElementById('slidesContainer').innerHTML = '';
+          document.getElementById('imgOverlay').style.display = 'none';
+        } else {
+          videoEl.style.display = 'none';
+          if (images.length > 0) {
+            iniciarSlideshow(images, d.interval_seconds || 5);
+          } else {
+            document.getElementById('slidesContainer').innerHTML = '';
+            document.getElementById('imgOverlay').style.display = 'none';
+            clearInterval(slideTimer);
+          }
+        }
+      }
+    }
+  }
+
+  // ── INIT ──────────────────────────────────────
+  atualizar();
+  setInterval(atualizar, 4000);
+
+  // Tela cheia ao clicar
+  document.body.addEventListener('click', () => {
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
+  });
+</script>
+</body>
+</html>
