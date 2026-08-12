@@ -338,7 +338,7 @@
 
       // Homenagens prontas
       const homenagens = await supaGet('radio_homenagens',
-        'status=in.(musica_pronta,gerando)&select=id,aniversariante,titulo_musica,estilo_musica,link_suno,status&order=solicitado_em.desc');
+        'status=in.(musica_pronta,gerando,tocando,tocado)&select=id,aniversariante,titulo_musica,estilo_musica,link_suno,status&order=solicitado_em.desc');
       if (homenagens !== null) {
         document.getElementById('statHomenagens').textContent = homenagens.filter(h => h.status === 'musica_pronta').length;
         renderHomenagens(homenagens);
@@ -377,7 +377,12 @@
           </div>
           ${pronta && h.link_suno ? `<a href="${h.link_suno}" target="_blank" style="color:var(--green);font-size:.8rem;white-space:nowrap">▶ Ouvir</a>` : ''}
         </div>
-        ${pronta ? `
+        ${(h.status === 'tocado' || h.status === 'tocando') ? `
+        <div class="homenagem-actions" style="margin-top:8px">
+          <button class="btn btn-ghost" onclick="resetarHomenagem(${h.id},'${h.aniversariante}')">🔄 Tocar Novamente</button>
+          <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(0,255,136,.05);border:1px solid rgba(0,255,136,.1);border-radius:8px;font-size:.75rem;color:var(--muted)">${h.status === 'tocando' ? '🎵 Tocando agora' : '✅ Já tocada'}</div>
+        </div>` : ''}
+      ${pronta ? `
         <div class="homenagem-actions">
           <button class="btn btn-purple" onclick="tocarHomenagem(${h.id},'${h.aniversariante}')">🎂 Tocar Agora</button>
           ${agendada
@@ -410,6 +415,24 @@
     fecharConfig(); toast('Configurações salvas!'); carregarDados();
   }
   document.getElementById('modalConfig').addEventListener('click', function(e) { if(e.target===this) fecharConfig(); });
+
+  async function resetarHomenagem(id, nome) {
+    if (!confirm('Resetar homenagem de ' + nome + ' para tocar novamente?')) return;
+    try {
+      const res = await fetch(CFG.supa + '/rest/v1/radio_homenagens?id=eq.' + id, {
+        method: 'PATCH',
+        headers: {
+          'apikey': CFG.key,
+          'Authorization': 'Bearer ' + CFG.key,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify({ status: 'musica_pronta', tocado_em: null })
+      });
+      if (res.ok) { toast('🔄 Homenagem resetada — pronta para tocar!'); carregarDados(); }
+      else { toast('Erro ao resetar homenagem', 'err'); }
+    } catch(e) { toast('Erro ao resetar homenagem', 'err'); }
+  }
 
   carregarDados();
   setInterval(carregarDados, 30000);
