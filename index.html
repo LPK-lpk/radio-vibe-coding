@@ -101,6 +101,18 @@
     .modal { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:28px; width:100%; max-width:480px; }
     .modal h2 { font-size:1.1rem; margin-bottom:20px; }
     .modal .btn-row { margin-top:20px; }
+
+    /* ── DATASHOW ────────────────────────────── */
+    .ds-images { display:flex; flex-direction:column; gap:8px; margin-top:8px; }
+    .ds-image-item { display:flex; align-items:center; gap:10px; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:10px 14px; }
+    .ds-image-thumb { width:48px; height:48px; border-radius:6px; object-fit:cover; background:var(--border); flex-shrink:0; }
+    .ds-image-url { flex:1; font-size:.78rem; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .ds-remove { background:none; border:none; color:var(--red); cursor:pointer; font-size:1rem; padding:4px; flex-shrink:0; }
+    .ds-drop { border:2px dashed var(--border); border-radius:10px; padding:24px; text-align:center; color:var(--muted); font-size:.85rem; cursor:pointer; transition:border-color .2s; }
+    .ds-drop:hover { border-color:var(--green); color:var(--text); }
+    .ds-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px; }
+    .ds-link { font-size:.75rem; color:var(--green); text-decoration:none; }
+    .ds-link:hover { text-decoration:underline; }
     .config-btn { position:fixed; bottom:20px; right:20px; background:var(--card); border:1px solid var(--border); border-radius:99px; color:var(--muted); cursor:pointer; font-family:inherit; font-size:.8rem; padding:8px 16px; transition:color .2s; }
     .config-btn:hover { color:var(--text); }
   </style>
@@ -148,6 +160,60 @@
     <div class="queue-list" id="homenagensList">
       <div class="homenagem-empty">Nenhuma homenagem pronta</div>
     </div>
+  </div>
+
+
+  <!-- DATASHOW CONTROLE -->
+  <div class="card">
+    <div class="card-label" style="display:flex;align-items:center;justify-content:space-between">
+      <span>📺 Controle Datashow</span>
+      <a class="ds-link" id="dsLink" href="#" target="_blank">Abrir Datashow ↗</a>
+    </div>
+
+    <div class="form-row">
+      <div>
+        <label>Título do Evento</label>
+        <input id="dsTitulo" type="text" placeholder="Ex: Festa de Aniversário do João" />
+      </div>
+    </div>
+
+    <div class="form-row" style="margin-top:10px">
+      <div>
+        <label>Modo</label>
+        <select id="dsModo" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:.9rem;padding:10px 14px;outline:none">
+          <option value="slideshow">🖼️ Slideshow de imagens</option>
+          <option value="video">🎥 Vídeo</option>
+          <option value="off">⏸️ Desligado</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Slideshow -->
+    <div id="dsSlideshow" style="margin-top:12px">
+      <label>Intervalo entre imagens</label>
+      <input id="dsInterval" type="number" value="5" min="2" max="60" style="margin-top:4px" />
+
+      <label style="margin-top:12px;display:block">Adicionar imagem</label>
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <input id="dsUrlInput" type="url" placeholder="https://... ou cole uma URL de imagem" />
+        <button class="btn btn-ghost" style="width:auto;padding:10px 14px;white-space:nowrap" onclick="dsAdicionarUrl()">+ URL</button>
+      </div>
+
+      <div class="ds-drop" style="margin-top:10px" onclick="document.getElementById('dsFileInput').click()">
+        📁 Clique para upload de foto / arraste aqui
+        <input type="file" id="dsFileInput" accept="image/*,video/*" multiple style="display:none" onchange="dsUploadArquivos(this.files)" />
+      </div>
+
+      <div class="ds-images" id="dsImageList"></div>
+    </div>
+
+    <!-- Vídeo -->
+    <div id="dsVideo" style="margin-top:12px;display:none">
+      <label>URL do vídeo (MP4 direto)</label>
+      <input id="dsVideoUrl" type="url" placeholder="https://...mp4" style="margin-top:4px" />
+    </div>
+
+    <button class="btn btn-green" style="margin-top:16px" onclick="dsSalvar()">💾 Aplicar no Datashow</button>
   </div>
 
   <!-- FILA -->
@@ -416,6 +482,114 @@
   }
   document.getElementById('modalConfig').addEventListener('click', function(e) { if(e.target===this) fecharConfig(); });
 
+
+  // ── DATASHOW ───────────────────────────────────
+  let dsImagens = [];
+
+  document.getElementById('dsLink').href =
+    'https://lpk-lpk.github.io/radio-vibe-coding/datashow.html';
+
+  document.getElementById('dsModo').addEventListener('change', function() {
+    document.getElementById('dsSlideshow').style.display = this.value === 'slideshow' ? '' : 'none';
+    document.getElementById('dsVideo').style.display     = this.value === 'video'     ? '' : 'none';
+  });
+
+  function dsRenderImagens() {
+    const el = document.getElementById('dsImageList');
+    if (!dsImagens.length) { el.innerHTML = ''; return; }
+    el.innerHTML = dsImagens.map((img, i) => `
+      <div class="ds-image-item">
+        <img class="ds-image-thumb" src="${img.url}" onerror="this.style.display='none'" />
+        <span class="ds-image-url">${img.url}</span>
+        <button class="ds-remove" onclick="dsRemoverImagem(${i})">✕</button>
+      </div>`).join('');
+  }
+
+  function dsAdicionarUrl() {
+    const url = document.getElementById('dsUrlInput').value.trim();
+    if (!url) return;
+    dsImagens.push({ url });
+    document.getElementById('dsUrlInput').value = '';
+    dsRenderImagens();
+  }
+
+  function dsRemoverImagem(i) {
+    dsImagens.splice(i, 1);
+    dsRenderImagens();
+  }
+
+  async function dsUploadArquivos(files) {
+    for (const file of files) {
+      const btn = document.querySelector('.ds-drop');
+      btn.textContent = '⏳ Enviando ' + file.name + '...';
+      try {
+        const ext  = file.name.split('.').pop();
+        const nome = 'ds_' + Date.now() + '_' + Math.random().toString(36).slice(2) + '.' + ext;
+        const res  = await fetch(CFG.supa + '/storage/v1/object/datashow/' + nome, {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + CFG.key, 'Content-Type': file.type },
+          body: file
+        });
+        if (res.ok) {
+          const url = CFG.supa + '/storage/v1/object/public/datashow/' + nome;
+          dsImagens.push({ url });
+          dsRenderImagens();
+          toast('✅ ' + file.name + ' enviado!');
+        } else {
+          toast('Erro ao enviar ' + file.name, 'err');
+        }
+      } catch(e) { toast('Erro de upload', 'err'); }
+      btn.textContent = '📁 Clique para upload de foto / arraste aqui';
+    }
+  }
+
+  async function dsSalvar() {
+    const modo      = document.getElementById('dsModo').value;
+    const titulo    = document.getElementById('dsTitulo').value.trim();
+    const interval  = parseInt(document.getElementById('dsInterval').value) || 5;
+    const video_url = document.getElementById('dsVideoUrl').value.trim();
+
+    try {
+      const res = await fetch(CFG.supa + '/rest/v1/radio_datashow?id=eq.1', {
+        method: 'PATCH',
+        headers: {
+          'apikey': CFG.key, 'Authorization': 'Bearer ' + CFG.key,
+          'Content-Type': 'application/json', 'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify({
+          mode, titulo_evento: titulo,
+          images: dsImagens,
+          interval_seconds: interval,
+          video_url: video_url || null,
+          updated_at: new Date().toISOString()
+        })
+      });
+      if (res.ok) { toast('📺 Datashow atualizado!'); }
+      else        { toast('Erro ao salvar datashow', 'err'); }
+    } catch(e) { toast('Erro ao salvar datashow', 'err'); }
+  }
+
+  async function carregarDatashow() {
+    if (!CFG.key) return;
+    try {
+      const res = await fetch(CFG.supa + '/rest/v1/radio_datashow?id=eq.1&select=mode,images,video_url,interval_seconds,titulo_evento', {
+        headers: { 'apikey': CFG.key, 'Authorization': 'Bearer ' + CFG.key }
+      });
+      const data = await res.json();
+      if (data && data[0]) {
+        const d = data[0];
+        document.getElementById('dsModo').value    = d.mode || 'slideshow';
+        document.getElementById('dsTitulo').value  = d.titulo_evento || '';
+        document.getElementById('dsInterval').value = d.interval_seconds || 5;
+        document.getElementById('dsVideoUrl').value = d.video_url || '';
+        dsImagens = Array.isArray(d.images) ? d.images : [];
+        dsRenderImagens();
+        document.getElementById('dsSlideshow').style.display = d.mode === 'slideshow' ? '' : 'none';
+        document.getElementById('dsVideo').style.display     = d.mode === 'video'     ? '' : 'none';
+      }
+    } catch(e) {}
+  }
+
   async function resetarHomenagem(id, nome) {
     if (!confirm('Resetar homenagem de ' + nome + ' para tocar novamente?')) return;
     try {
@@ -435,6 +609,7 @@
   }
 
   carregarDados();
+  carregarDatashow();
   setInterval(carregarDados, 30000);
 </script>
 </body>
