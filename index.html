@@ -78,6 +78,7 @@
     .homenagem-titulo { font-size:.8rem; color:var(--muted); margin-top:2px; }
     .homenagem-estilo { font-size:.72rem; color:var(--purple); margin-top:2px; }
     .homenagem-actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+    .homenagem-actions-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
     .homenagem-schedule { display:flex; gap:8px; align-items:center; }
     .homenagem-schedule input[type="time"] {
       flex:1; padding:8px 12px; font-size:.85rem;
@@ -91,6 +92,12 @@
       border-radius:99px; padding:4px 10px;
       font-size:.7rem; color:var(--yellow); font-weight:600;
     }
+    .video-badge {
+      display:inline-flex; align-items:center; gap:6px;
+      background:rgba(0,255,136,.1); border:1px solid rgba(0,255,136,.3);
+      border-radius:99px; padding:4px 10px;
+      font-size:.7rem; color:var(--green); font-weight:600;
+    }
 
     #toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(80px); background:var(--card); border:1px solid var(--border); border-radius:10px; padding:12px 20px; font-size:.88rem; transition:transform .3s ease; z-index:99; white-space:nowrap; pointer-events:none; }
     #toast.show { transform:translateX(-50%) translateY(0); }
@@ -98,11 +105,11 @@
     #toast.err { border-color:var(--red);   color:var(--red); }
     .modal-backdrop { display:none; position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:50; align-items:center; justify-content:center; padding:16px; }
     .modal-backdrop.open { display:flex; }
-    .modal { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:28px; width:100%; max-width:480px; }
+    .modal { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:28px; width:100%; max-width:480px; max-height:90vh; overflow-y:auto; }
     .modal h2 { font-size:1.1rem; margin-bottom:20px; }
     .modal .btn-row { margin-top:20px; }
 
-    /* ── DATASHOW ────────────────────────────── */
+    /* ── DATASHOW / UPLOAD (compartilhado) ─────── */
     .ds-images { display:flex; flex-direction:column; gap:8px; margin-top:8px; }
     .ds-image-item { display:flex; align-items:center; gap:10px; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:10px 14px; }
     .ds-image-thumb { width:48px; height:48px; border-radius:6px; object-fit:cover; background:var(--border); flex-shrink:0; }
@@ -240,6 +247,31 @@
   </div>
 </div>
 
+<!-- MODAL GERAR VÍDEO (por homenagem) -->
+<div class="modal-backdrop" id="modalVideo">
+  <div class="modal">
+    <h2>🎬 Gerar Vídeo — <span id="vidNomeHomenagem">—</span></h2>
+
+    <label>Adicionar foto por URL</label>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <input id="vidUrlInput" type="url" placeholder="https://... ou cole uma URL de imagem" />
+      <button class="btn btn-ghost" style="width:auto;padding:10px 14px;white-space:nowrap" onclick="vidAdicionarUrl()">+ URL</button>
+    </div>
+
+    <div class="ds-drop" style="margin-top:10px" onclick="document.getElementById('vidFileInput').click()">
+      📁 Clique para upload de fotos / arraste aqui
+      <input type="file" id="vidFileInput" accept="image/*" multiple style="display:none" onchange="vidUploadArquivos(this.files)" />
+    </div>
+
+    <div class="ds-images" id="vidImageList"></div>
+
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="fecharModalVideo()">Cancelar</button>
+      <button class="btn btn-purple" id="btnGerarVideo" onclick="gerarVideo()">🎬 Gerar Vídeo</button>
+    </div>
+  </div>
+</div>
+
 <script>
   const CFG = {
     n8n:  localStorage.getItem('rvc_n8n')  || 'https://n8n-n8n-start.ndjgby.easypanel.host',
@@ -259,6 +291,7 @@
 
   let isLive = false, liveId = null;
   const agendamentos = {}; // { homenagem_id: timeoutId }
+  const videosGerados = {}; // { homenagem_id: true } — controlado localmente após disparo
 
   function setLiveState(live) {
     isLive = live;
@@ -343,7 +376,6 @@
     const diff = alvo - agora;
     const mins = Math.round(diff / 60000);
 
-    // Cancelar agendamento anterior se existir
     if (agendamentos[id]) { clearTimeout(agendamentos[id]); }
 
     agendamentos[id] = setTimeout(() => {
@@ -353,7 +385,7 @@
     }, diff);
 
     toast(`⏰ Agendado para ${horario} (em ${mins} min)`);
-    carregarDados(); // atualiza badge de agendado
+    carregarDados();
   }
 
   function cancelarAgendamento(id) {
@@ -404,7 +436,7 @@
 
       // Homenagens prontas
       const homenagens = await supaGet('radio_homenagens',
-        'status=in.(musica_pronta,gerando,tocando,tocado)&select=id,nome_homenageado,titulo_musica,estilo_musica,audio_url,status&order=created_at.desc');
+        'status=in.(musica_pronta,gerando,tocando,tocado)&select=id,nome_homenageado,titulo_musica,estilo_musica,audio_url,video_url,telefone,status&order=created_at.desc');
       if (homenagens !== null) {
         document.getElementById('statHomenagens').textContent = homenagens.filter(h => h.status === 'musica_pronta').length;
         renderHomenagens(homenagens);
@@ -431,6 +463,7 @@
     el.innerHTML = homenagens.map(h => {
       const pronta    = h.status === 'musica_pronta';
       const agendada  = !!agendamentos[h.id];
+      const temVideo  = !!h.video_url;
       return `
       <div class="homenagem-item">
         <div class="homenagem-header">
@@ -440,6 +473,7 @@
             <div class="homenagem-titulo">${h.titulo_musica}</div>
             <div class="homenagem-estilo">🎭 ${h.estilo_musica} ${!pronta ? '· ⏳ gerando...' : ''}</div>
             ${agendada ? `<div style="margin-top:6px"><span class="scheduled-badge">⏰ Agendado</span></div>` : ''}
+            ${temVideo ? `<div style="margin-top:6px"><span class="video-badge">🎬 Vídeo pronto</span></div>` : ''}
           </div>
           ${pronta && h.audio_url ? `<a href="${h.audio_url}" target="_blank" style="color:var(--green);font-size:.8rem;white-space:nowrap">▶ Ouvir</a>` : ''}
         </div>
@@ -449,13 +483,14 @@
           <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(0,255,136,.05);border:1px solid rgba(0,255,136,.1);border-radius:8px;font-size:.75rem;color:var(--muted)">${h.status === 'tocando' ? '🎵 Tocando agora' : '✅ Já tocada'}</div>
         </div>` : ''}
       ${pronta ? `
-        <div class="homenagem-actions">
+        <div class="homenagem-actions-3">
           <button class="btn btn-purple" onclick="tocarHomenagem('${h.id}','${h.nome_homenageado}')">🎂 Tocar Agora</button>
+          <button class="btn btn-yellow" onclick="abrirModalVideo('${h.id}','${h.nome_homenageado}','${h.telefone || ''}')">🎬 ${temVideo ? 'Gerar de Novo' : 'Gerar Vídeo'}</button>
           ${agendada
             ? `<button class="btn btn-ghost" onclick="cancelarAgendamento('${h.id}')">❌ Cancelar</button>`
             : `<div class="homenagem-schedule">
                 <input type="time" id="time_${h.id}" />
-                <button class="btn btn-yellow" style="width:auto;padding:10px 14px" onclick="agendarHomenagem('${h.id}','${h.nome_homenageado}',document.getElementById('time_${h.id}'))">⏰</button>
+                <button class="btn btn-ghost" style="width:auto;padding:10px 14px" onclick="agendarHomenagem('${h.id}','${h.nome_homenageado}',document.getElementById('time_${h.id}'))">⏰</button>
                </div>`
           }
         </div>` : ''}
@@ -482,6 +517,95 @@
   }
   document.getElementById('modalConfig').addEventListener('click', function(e) { if(e.target===this) fecharConfig(); });
 
+  // ── MODAL GERAR VÍDEO ──────────────────────────
+  let vidFotos = [];
+  let vidHomenagemAtual = null; // { id, nome, telefone }
+
+  function abrirModalVideo(id, nome, telefone) {
+    vidHomenagemAtual = { id, nome, telefone };
+    vidFotos = [];
+    document.getElementById('vidNomeHomenagem').textContent = nome;
+    document.getElementById('vidUrlInput').value = '';
+    vidRenderImagens();
+    document.getElementById('modalVideo').classList.add('open');
+  }
+
+  function fecharModalVideo() {
+    document.getElementById('modalVideo').classList.remove('open');
+  }
+  document.getElementById('modalVideo').addEventListener('click', function(e) { if(e.target===this) fecharModalVideo(); });
+
+  function vidRenderImagens() {
+    const el = document.getElementById('vidImageList');
+    if (!vidFotos.length) { el.innerHTML = ''; return; }
+    el.innerHTML = vidFotos.map((img, i) => `
+      <div class="ds-image-item">
+        <img class="ds-image-thumb" src="${img.url}" onerror="this.style.display='none'" />
+        <span class="ds-image-url">${img.url}</span>
+        <button class="ds-remove" onclick="vidRemoverImagem(${i})">✕</button>
+      </div>`).join('');
+  }
+
+  function vidAdicionarUrl() {
+    const url = document.getElementById('vidUrlInput').value.trim();
+    if (!url) return;
+    vidFotos.push({ url });
+    document.getElementById('vidUrlInput').value = '';
+    vidRenderImagens();
+  }
+
+  function vidRemoverImagem(i) {
+    vidFotos.splice(i, 1);
+    vidRenderImagens();
+  }
+
+  async function vidUploadArquivos(files) {
+    for (const file of files) {
+      const btn = document.querySelector('#modalVideo .ds-drop');
+      const textoOriginal = btn.textContent;
+      btn.textContent = '⏳ Enviando ' + file.name + '...';
+      try {
+        const ext  = file.name.split('.').pop();
+        const nome = 'hom_' + Date.now() + '_' + Math.random().toString(36).slice(2) + '.' + ext;
+        const res  = await fetch(CFG.supa + '/storage/v1/object/radio_fotos/' + nome, {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + CFG.key, 'Content-Type': file.type },
+          body: file
+        });
+        if (res.ok) {
+          const url = CFG.supa + '/storage/v1/object/public/radio_fotos/' + nome;
+          vidFotos.push({ url });
+          vidRenderImagens();
+          toast('✅ ' + file.name + ' enviado!');
+        } else {
+          toast('Erro ao enviar ' + file.name, 'err');
+        }
+      } catch(e) { toast('Erro de upload', 'err'); }
+      btn.textContent = textoOriginal;
+    }
+  }
+
+  async function gerarVideo() {
+    if (!vidHomenagemAtual) return;
+    if (vidFotos.length === 0) { toast('Adicione pelo menos uma foto', 'err'); return; }
+
+    const btn = document.getElementById('btnGerarVideo');
+    btn.disabled = true; btn.textContent = 'Gerando...';
+    try {
+      await post('/webhook/radio-gerar-video', {
+        homenagem_id: vidHomenagemAtual.id,
+        telefone: vidHomenagemAtual.telefone || '',
+        fotos: vidFotos.map(f => f.url)
+      });
+      toast('🎬 Vídeo sendo gerado! Você será avisado no WhatsApp quando terminar.');
+      fecharModalVideo();
+      carregarDados();
+    } catch(e) {
+      toast('Erro ao gerar vídeo', 'err');
+    } finally {
+      btn.disabled = false; btn.textContent = '🎬 Gerar Vídeo';
+    }
+  }
 
   // ── DATASHOW ───────────────────────────────────
   let dsImagens = [];
@@ -520,7 +644,7 @@
 
   async function dsUploadArquivos(files) {
     for (const file of files) {
-      const btn = document.querySelector('.ds-drop');
+      const btn = document.querySelector('#dsSlideshow .ds-drop');
       btn.textContent = '⏳ Enviando ' + file.name + '...';
       try {
         const ext  = file.name.split('.').pop();
