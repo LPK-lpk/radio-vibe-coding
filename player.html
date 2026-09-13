@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rádio Vibe Coding — Player</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #080810; --card: #16162a; --border: #2a2a45;
+      --green: #00ff88; --muted: #6b6b90; --text: #e8e8f8;
+    }
+    html, body { width:100%; height:100%; background:var(--bg); overflow:hidden; }
+    body { font-family:'Space Grotesk',sans-serif; color:var(--text); }
+
+    #player-wrap { position:fixed; inset:0; }
+    #yt-player { width:100%; height:100%; }
+
+    #idle-screen {
+      position:fixed; inset:0; display:flex; flex-direction:column;
+      align-items:center; justify-content:center; gap:16px;
+      background:var(--bg); transition:opacity .5s;
+    }
+    #idle-screen.hidden { opacity:0; pointer-events:none; }
+    .idle-icon { font-size:3rem; opacity:.5; }
+    .idle-text { color:var(--muted); font-size:.95rem; letter-spacing:.3px; }
+
+    #now-playing {
+      position:fixed; left:16px; bottom:16px; right:16px;
+      display:flex; align-items:center; gap:12px;
+      background:rgba(22,22,42,.85); border:1px solid var(--border);
+      border-radius:12px; padding:12px 16px; backdrop-filter:blur(6px);
+      opacity:0; transform:translateY(12px); transition:all .4s;
+      pointer-events:none;
+    }
+    #now-playing.show { opacity:1; transform:translateY(0); }
+    .np-dot { width:8px; height:8px; border-radius:50%; background:var(--green); flex-shrink:0; animation:pulse 1.2s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+    .np-text { font-size:.85rem; }
+    .np-artist { color:var(--muted); }
+  </style>
+</head>
+<body>
+
+  <div id="player-wrap">
+    <div id="yt-player"></div>
+  </div>
+
+  <div id="idle-screen">
+    <div class="idle-icon">📻</div>
+    <div class="idle-text">Aguardando próxima música...</div>
+  </div>
+
+  <div id="now-playing">
+    <div class="np-dot"></div>
+    <div class="np-text">🎵 <span id="npMusica">—</span> <span class="np-artist" id="npArtista"></span></div>
+  </div>
+
+  <script src="https://www.youtube.com/iframe_api"></script>
+  <script>
+    // ── CONFIG ────────────────────────────────
+    const CFG = {
+      supa: localStorage.getItem('rvc_supa') || 'https://mpjlxsywadwbjmjkzsbq.supabase.co',
+      key:  localStorage.getItem('rvc_key')  || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1wamx4c3l3YWR3Ymptamt6c2JxIiwicm9sZSI6ImFub24iLCJpYXQiOjE2OTM2OTM5NzcsImV4cCI6MjAwOTI2OTk3N30.-vgnzyYGwmPuS74A-ZjGA4QhM7vGvSGpN-4237pF3vo',
+      ytApiKey: localStorage.getItem('rvc_yt_key') || 'AIzaSyC-IUlr-DsBSieMdS1ZzA2Gfve0jbGU-9s',
+    };
+
+    let ytPlayer = null;
+    let ytReady = false;
+    let musicaAtualCache = null; // evita re-buscar o mesmo vídeo repetidamente
+
+    // ── YOUTUBE IFRAME API ────────────────────
+    function onYouTubeIframeAPIReady() {
+      ytPlayer = new YT.Player('yt-player', {
+        height: '100%',
+        width: '100%',
+        playerVars: {
+          autoplay: 1,
+          controls: 0,
+          disablekb: 1,
+          fs: 0,
+          modestbranding: 1,
+          rel: 0,
+          iv_load_policy: 3,
+        },
+        events: {
+          onReady: () => { ytReady = true; },
+        }
+      });
+    }
+
+    // ── BUSCAR VÍDEO NO YOUTUBE ───────────────
+    async function buscarVideoId(musica, artista) {
+      const query = encodeURIComponent(`${musica} ${artista || ''} audio`.trim());
+      const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoCategoryId=10&maxResults=1&q=${query}&key=${CFG.ytApiKey}`;
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data.items && data.items.length > 0) {
+          return data.items[0].id.videoId;
+        }
+      } catch (e) {
+        console.warn('Erro ao buscar no YouTube:', e);
+      }
+      return null;
+    }
+
+    function mostrarIdle() {
+      document.getElementById('idle-screen').classList.remove('hidden');
+      document.getElementById('now-playing').classList.remove('show');
+    }
+
+    function mostrarTocando(musica, artista) {
+      document.getElementById('idle-screen').classList.add('hidden');
+      document.getElementById('npMusica').textContent = musica;
+      document.getElementById('npArtista').textContent = artista ? '— ' + artista : '';
+      document.getElementById('now-playing').classList.add('show');
+    }
+
+    // ── SUPABASE POLLING ──────────────────────
+    async function checarMusicaAtual() {
+      if (!CFG.key) return;
+      try {
+        const res = await fetch(
+          `${CFG.supa}/rest/v1/radio_config?id=eq.1&select=status,musica_atual,artista_atual`,
+          { headers: { 'apikey': CFG.key, 'Authorization': 'Bearer ' + CFG.key } }
+        );
+        const data = await res.json();
+        if (!data || !data[0]) return;
+
+        const c = data[0];
+
+        if (c.status !== 'ao_vivo' || !c.musica_atual) {
+          if (musicaAtualCache !== null) {
+            musicaAtualCache = null;
+            mostrarIdle();
+          }
+          return;
+        }
+
+        const chave = c.musica_atual + '|' + (c.artista_atual || '');
+        if (chave === musicaAtualCache) return; // já está tocando essa, não refaz busca
+
+        musicaAtualCache = chave;
+
+        const videoId = await buscarVideoId(c.musica_atual, c.artista_atual);
+        if (videoId && ytReady) {
+          ytPlayer.loadVideoById(videoId);
+          mostrarTocando(c.musica_atual, c.artista_atual);
+        } else {
+          console.warn('Vídeo não encontrado para:', c.musica_atual, c.artista_atual);
+        }
+      } catch (e) {
+        console.warn('Erro ao checar música atual:', e);
+      }
+    }
+
+    checarMusicaAtual();
+    setInterval(checarMusicaAtual, 8000);
+  </script>
+</body>
+</html>
