@@ -154,7 +154,7 @@
     return tipo === 'video' || (url && (url.match(/\.(mp4|webm|ogg)$/i)));
   }
 
-  // ── CSV PARSER ────────────────────────────────
+   // ── CSV PARSER ────────────────────────────────
   function parseCSV(text) {
     const lines = text.split(/\r?\n/).filter(l => l.trim());
     if (lines.length < 2) return [];
@@ -171,7 +171,7 @@
         url:     cols[0] || '',
         tipo:    (cols[1] || 'imagem').toLowerCase().trim(),
         legenda: cols[2] || '',
-        ativo:   (cols[3] || 'SIM').toUpperCase().trim() !== 'NAO'
+        ativo:   !['NAO', 'NÃO', 'FALSE', 'NO', '0'].includes((cols[3] || 'SIM').toUpperCase().trim())
       };
     }).filter(r => r.url && r.ativo);
   }
