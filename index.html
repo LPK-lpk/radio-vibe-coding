@@ -242,10 +242,10 @@
 
 <script>
   const CFG = {
-  n8n:  localStorage.getItem('rvc_n8n')  || 'https://n8n-n8n-start.ndjgby.easypanel.host',
-  supa: localStorage.getItem('rvc_supa') || 'https://mpjlxsywadwbjmjkzsbq.supabase.co',
-  key:  localStorage.getItem('rvc_key')  || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1wamx4c3l3YWR3Ymptamt6c2JxIiwicm9sZSI6ImFub24iLCJpYXQiOjE2OTM2OTM5NzcsImV4cCI6MjAwOTI2OTk3N30.-vgnzyYGwmPuS74A-ZjGA4QhM7vGvSGpN-4237pF3vo',
-};
+    n8n:  localStorage.getItem('rvc_n8n')  || 'https://n8n-n8n-start.ndjgby.easypanel.host',
+    supa: localStorage.getItem('rvc_supa') || 'https://mpjlxsywadwbjmjkzsbq.supabase.co',
+    key:  localStorage.getItem('rvc_key')  || 'COLE_AQUI_A_ANON_KEY_DO_PROJETO_NOVO',
+  };
 
   // Waveform
   const waveEl = document.getElementById('waveform');
@@ -394,8 +394,8 @@
 
       // Fila
       const filaParams = liveId
-        ? `live_id=eq.${liveId}&status=eq.aguardando&select=musica,nome_solicitante&order=solicitado_em.asc`
-        : 'status=eq.aguardando&select=musica,nome_solicitante&order=solicitado_em.asc&limit=0';
+        ? `live_id=eq.${liveId}&status=eq.aguardando&select=musica,pedido_por&order=created_at.asc`
+        : 'status=eq.aguardando&select=musica,pedido_por&order=created_at.asc&limit=0';
       const fila = await supaGet('radio_fila_musicas', filaParams);
       if (fila !== null) {
         document.getElementById('statFila').textContent = fila.length;
@@ -404,7 +404,7 @@
 
       // Homenagens prontas
       const homenagens = await supaGet('radio_homenagens',
-        'status=in.(musica_pronta,gerando,tocando,tocado)&select=id,aniversariante,titulo_musica,estilo_musica,link_suno,status&order=solicitado_em.desc');
+        'status=in.(musica_pronta,gerando,tocando,tocado)&select=id,nome_homenageado,titulo_musica,estilo_musica,audio_url,status&order=created_at.desc');
       if (homenagens !== null) {
         document.getElementById('statHomenagens').textContent = homenagens.filter(h => h.status === 'musica_pronta').length;
         renderHomenagens(homenagens);
@@ -419,7 +419,7 @@
     el.innerHTML = fila.map((f, i) => `
       <div class="queue-item">
         <span class="queue-pos">${i+1}</span>
-        <div><div class="queue-music">${f.musica}</div><div class="queue-by">pedido por ${f.nome_solicitante ?? '—'}</div></div>
+        <div><div class="queue-music">${f.musica}</div><div class="queue-by">pedido por ${f.pedido_por ?? '—'}</div></div>
       </div>`).join('');
   }
 
@@ -436,26 +436,26 @@
         <div class="homenagem-header">
           <div class="homenagem-icon">🎂</div>
           <div class="homenagem-info">
-            <div class="homenagem-nome">${h.aniversariante}</div>
+            <div class="homenagem-nome">${h.nome_homenageado}</div>
             <div class="homenagem-titulo">${h.titulo_musica}</div>
             <div class="homenagem-estilo">🎭 ${h.estilo_musica} ${!pronta ? '· ⏳ gerando...' : ''}</div>
             ${agendada ? `<div style="margin-top:6px"><span class="scheduled-badge">⏰ Agendado</span></div>` : ''}
           </div>
-          ${pronta && h.link_suno ? `<a href="${h.link_suno}" target="_blank" style="color:var(--green);font-size:.8rem;white-space:nowrap">▶ Ouvir</a>` : ''}
+          ${pronta && h.audio_url ? `<a href="${h.audio_url}" target="_blank" style="color:var(--green);font-size:.8rem;white-space:nowrap">▶ Ouvir</a>` : ''}
         </div>
         ${(h.status === 'tocado' || h.status === 'tocando') ? `
         <div class="homenagem-actions" style="margin-top:8px">
-          <button class="btn btn-ghost" onclick="resetarHomenagem(${h.id},'${h.aniversariante}')">🔄 Tocar Novamente</button>
+          <button class="btn btn-ghost" onclick="resetarHomenagem(${h.id},'${h.nome_homenageado}')">🔄 Tocar Novamente</button>
           <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(0,255,136,.05);border:1px solid rgba(0,255,136,.1);border-radius:8px;font-size:.75rem;color:var(--muted)">${h.status === 'tocando' ? '🎵 Tocando agora' : '✅ Já tocada'}</div>
         </div>` : ''}
       ${pronta ? `
         <div class="homenagem-actions">
-          <button class="btn btn-purple" onclick="tocarHomenagem(${h.id},'${h.aniversariante}')">🎂 Tocar Agora</button>
+          <button class="btn btn-purple" onclick="tocarHomenagem(${h.id},'${h.nome_homenageado}')">🎂 Tocar Agora</button>
           ${agendada
             ? `<button class="btn btn-ghost" onclick="cancelarAgendamento(${h.id})">❌ Cancelar</button>`
             : `<div class="homenagem-schedule">
                 <input type="time" id="time_${h.id}" />
-                <button class="btn btn-yellow" style="width:auto;padding:10px 14px" onclick="agendarHomenagem(${h.id},'${h.aniversariante}',document.getElementById('time_${h.id}}'))">⏰</button>
+                <button class="btn btn-yellow" style="width:auto;padding:10px 14px" onclick="agendarHomenagem(${h.id},'${h.nome_homenageado}',document.getElementById('time_${h.id}'))">⏰</button>
                </div>`
           }
         </div>` : ''}
@@ -525,13 +525,13 @@
       try {
         const ext  = file.name.split('.').pop();
         const nome = 'ds_' + Date.now() + '_' + Math.random().toString(36).slice(2) + '.' + ext;
-        const res  = await fetch(CFG.supa + '/storage/v1/object/datashow/' + nome, {
+        const res  = await fetch(CFG.supa + '/storage/v1/object/radio_fotos/' + nome, {
           method: 'POST',
           headers: { 'Authorization': 'Bearer ' + CFG.key, 'Content-Type': file.type },
           body: file
         });
         if (res.ok) {
-          const url = CFG.supa + '/storage/v1/object/public/datashow/' + nome;
+          const url = CFG.supa + '/storage/v1/object/public/radio_fotos/' + nome;
           dsImagens.push({ url });
           dsRenderImagens();
           toast('✅ ' + file.name + ' enviado!');
@@ -557,7 +557,7 @@
           'Content-Type': 'application/json', 'Prefer': 'return=minimal'
         },
         body: JSON.stringify({
-          mode, titulo_evento: titulo,
+          mode: modo, titulo_evento: titulo,
           images: dsImagens,
           interval_seconds: interval,
           video_url: video_url || null,
