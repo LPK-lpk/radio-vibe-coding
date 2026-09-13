@@ -244,7 +244,7 @@
   const CFG = {
     n8n:  localStorage.getItem('rvc_n8n')  || 'https://n8n-n8n-start.ndjgby.easypanel.host',
     supa: localStorage.getItem('rvc_supa') || 'https://mpjlxsywadwbjmjkzsbq.supabase.co',
-    key:  localStorage.getItem('rvc_key')  || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1wamx4c3l3YWR3Ymptamt6c2JxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTY5MzY5Mzk3NywiZXhwIjoyMDA5MjY5OTc3fQ.G9WLMMk4kk-WdV7B9IClEnH8z7T8-s90K1LGNEPYIaI',
+    key:  localStorage.getItem('rvc_key')  || 'COLE_AQUI_A_ANON_KEY_PUBLICA_NAO_A_SERVICE_ROLE',
   };
 
   // Waveform
@@ -445,17 +445,17 @@
         </div>
         ${(h.status === 'tocado' || h.status === 'tocando') ? `
         <div class="homenagem-actions" style="margin-top:8px">
-          <button class="btn btn-ghost" onclick="resetarHomenagem(${h.id},'${h.nome_homenageado}')">🔄 Tocar Novamente</button>
+          <button class="btn btn-ghost" onclick="resetarHomenagem('${h.id}','${h.nome_homenageado}')">🔄 Tocar Novamente</button>
           <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(0,255,136,.05);border:1px solid rgba(0,255,136,.1);border-radius:8px;font-size:.75rem;color:var(--muted)">${h.status === 'tocando' ? '🎵 Tocando agora' : '✅ Já tocada'}</div>
         </div>` : ''}
       ${pronta ? `
         <div class="homenagem-actions">
-          <button class="btn btn-purple" onclick="tocarHomenagem(${h.id},'${h.nome_homenageado}')">🎂 Tocar Agora</button>
+          <button class="btn btn-purple" onclick="tocarHomenagem('${h.id}','${h.nome_homenageado}')">🎂 Tocar Agora</button>
           ${agendada
-            ? `<button class="btn btn-ghost" onclick="cancelarAgendamento(${h.id})">❌ Cancelar</button>`
+            ? `<button class="btn btn-ghost" onclick="cancelarAgendamento('${h.id}')">❌ Cancelar</button>`
             : `<div class="homenagem-schedule">
                 <input type="time" id="time_${h.id}" />
-                <button class="btn btn-yellow" style="width:auto;padding:10px 14px" onclick="agendarHomenagem(${h.id},'${h.nome_homenageado}',document.getElementById('time_${h.id}'))">⏰</button>
+                <button class="btn btn-yellow" style="width:auto;padding:10px 14px" onclick="agendarHomenagem('${h.id}','${h.nome_homenageado}',document.getElementById('time_${h.id}'))">⏰</button>
                </div>`
           }
         </div>` : ''}
