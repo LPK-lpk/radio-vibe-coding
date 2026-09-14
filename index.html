@@ -10,7 +10,808 @@
     :root {
       --bg:      #080810; --surface: #0f0f1a; --card:   #16162a;
       --border:  #2a2a45; --green:  #00ff88;  --green-dim:#00cc6a;
+      --red:     #ff3366; --yellow: #ffcc00;  --purple: #<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rádio Vibe Coding — Painel DJ</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:      #080810; --surface: #0f0f1a; --card:   #16162a;
+      --border:  #2a2a45; --green:  #00ff88;  --green-dim:#00cc6a;
       --red:     #ff3366; --yellow: #ffcc00;  --purple: #a855f7;
+      --text:    #e8e8f8; --muted:  #6b6b90;  --radius: 14px;
+    }
+    body { background:var(--bg); color:var(--text); font-family:'Space Grotesk',sans-serif; min-height:100vh; padding:24px 16px 80px; }
+    header { max-width:720px; margin:0 auto 32px; display:flex; align-items:center; justify-content:space-between; gap:16px; }
+    .station-name { font-size:clamp(1.2rem,4vw,1.6rem); font-weight:700; letter-spacing:-.5px; }
+    .station-name span { color:var(--green); }
+    .live-badge { display:flex; align-items:center; gap:8px; padding:6px 14px; border-radius:99px; font-size:.8rem; font-weight:600; letter-spacing:.5px; text-transform:uppercase; transition:all .4s; }
+    .live-badge.offline { background:rgba(107,107,144,.15); border:1px solid var(--border); color:var(--muted); }
+    .live-badge.online  { background:rgba(255,51,102,.12); border:1px solid rgba(255,51,102,.4); color:var(--red); }
+    .dot { width:8px; height:8px; border-radius:50%; background:currentColor; }
+    .live-badge.online .dot { animation:pulse-dot 1.2s ease-in-out infinite; }
+    @keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.7)} }
+    .waveform { display:flex; align-items:center; gap:3px; height:32px; margin:0 auto 32px; max-width:720px; }
+    .bar { flex:1; border-radius:3px; background:var(--green); opacity:.15; transform-origin:bottom; transition:opacity .4s; }
+    body.is-live .bar { opacity:1; animation:wave var(--dur,.8s) ease-in-out infinite alternate; animation-delay:var(--delay,0s); }
+    @keyframes wave { from{transform:scaleY(.15)} to{transform:scaleY(1)} }
+    .grid { max-width:720px; margin:0 auto; display:grid; gap:16px; }
+    .card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:24px; }
+    .card-label { font-size:.7rem; font-weight:600; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); margin-bottom:16px; }
+    .form-row { display:grid; gap:12px; }
+    .form-row+.form-row { margin-top:12px; }
+    label { font-size:.8rem; color:var(--muted); display:block; margin-bottom:4px; }
+    input, textarea { width:100%; background:var(--surface); border:1px solid var(--border); border-radius:8px; color:var(--text); font-family:inherit; font-size:.9rem; padding:10px 14px; outline:none; transition:border-color .2s; }
+    input:focus, textarea:focus { border-color:var(--green); }
+    textarea { resize:vertical; min-height:70px; }
+    .btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; border:none; border-radius:10px; cursor:pointer; font-family:inherit; font-size:.9rem; font-weight:600; padding:12px 20px; transition:all .2s; width:100%; }
+    .btn:disabled { opacity:.45; cursor:not-allowed; }
+    .btn:active:not(:disabled) { transform:scale(.97); }
+    .btn-green  { background:var(--green); color:#000; }
+    .btn-green:hover:not(:disabled) { background:var(--green-dim); }
+    .btn-red    { background:rgba(255,51,102,.12); border:1px solid rgba(255,51,102,.35); color:var(--red); }
+    .btn-red:hover:not(:disabled) { background:rgba(255,51,102,.22); }
+    .btn-ghost  { background:rgba(255,255,255,.05); border:1px solid var(--border); color:var(--text); }
+    .btn-ghost:hover:not(:disabled) { background:rgba(255,255,255,.09); }
+    .btn-purple { background:rgba(168,85,247,.15); border:1px solid rgba(168,85,247,.4); color:var(--purple); }
+    .btn-purple:hover:not(:disabled) { background:rgba(168,85,247,.25); }
+    .btn-yellow { background:rgba(255,204,0,.12); border:1px solid rgba(255,204,0,.35); color:var(--yellow); }
+    .btn-yellow:hover:not(:disabled) { background:rgba(255,204,0,.22); }
+    .btn-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px; }
+    .status-strip { display:flex; gap:12px; flex-wrap:wrap; }
+    .stat { flex:1; min-width:100px; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:14px 16px; text-align:center; }
+    .stat-value { font-size:1.6rem; font-weight:700; color:var(--green); line-height:1; margin-bottom:4px; }
+    .stat-label { font-size:.72rem; color:var(--muted); text-transform:uppercase; letter-spacing:.8px; }
+    .queue-list { display:flex; flex-direction:column; gap:8px; margin-top:4px; }
+    .queue-item { display:flex; align-items:center; gap:12px; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:12px 14px; }
+    .queue-pos { font-size:.75rem; font-weight:700; color:var(--green); min-width:20px; }
+    .queue-music { flex:1; font-size:.88rem; }
+    .queue-by { font-size:.75rem; color:var(--muted); }
+    .queue-empty { text-align:center; padding:24px; color:var(--muted); font-size:.88rem; }
+
+    /* ── HOMENAGENS ──────────────────────────── */
+    .homenagem-item {
+      background:var(--surface);
+      border:1px solid rgba(168,85,247,.2);
+      border-radius:12px;
+      padding:16px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .homenagem-header { display:flex; align-items:flex-start; gap:12px; }
+    .homenagem-icon { font-size:1.5rem; flex-shrink:0; }
+    .homenagem-info { flex:1; }
+    .homenagem-nome { font-weight:700; font-size:.95rem; color:var(--text); }
+    .homenagem-titulo { font-size:.8rem; color:var(--muted); margin-top:2px; }
+    .homenagem-estilo { font-size:.72rem; color:var(--purple); margin-top:2px; }
+    .homenagem-actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+    .homenagem-actions-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+    .homenagem-schedule { display:flex; gap:8px; align-items:center; }
+    .homenagem-schedule input[type="time"] {
+      flex:1; padding:8px 12px; font-size:.85rem;
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:8px; color:var(--text);
+    }
+    .homenagem-empty { text-align:center; padding:24px; color:var(--muted); font-size:.88rem; }
+    .scheduled-badge {
+      display:inline-flex; align-items:center; gap:6px;
+      background:rgba(255,204,0,.1); border:1px solid rgba(255,204,0,.3);
+      border-radius:99px; padding:4px 10px;
+      font-size:.7rem; color:var(--yellow); font-weight:600;
+    }
+    .video-badge {
+      display:inline-flex; align-items:center; gap:6px;
+      background:rgba(0,255,136,.1); border:1px solid rgba(0,255,136,.3);
+      border-radius:99px; padding:4px 10px;
+      font-size:.7rem; color:var(--green); font-weight:600;
+    }
+
+    #toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(80px); background:var(--card); border:1px solid var(--border); border-radius:10px; padding:12px 20px; font-size:.88rem; transition:transform .3s ease; z-index:99; white-space:nowrap; pointer-events:none; }
+    #toast.show { transform:translateX(-50%) translateY(0); }
+    #toast.ok  { border-color:var(--green); color:var(--green); }
+    #toast.err { border-color:var(--red);   color:var(--red); }
+    .modal-backdrop { display:none; position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:50; align-items:center; justify-content:center; padding:16px; }
+    .modal-backdrop.open { display:flex; }
+    .modal { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:28px; width:100%; max-width:480px; max-height:90vh; overflow-y:auto; }
+    .modal h2 { font-size:1.1rem; margin-bottom:20px; }
+    .modal .btn-row { margin-top:20px; }
+
+    /* ── DATASHOW / UPLOAD (compartilhado) ─────── */
+    .ds-images { display:flex; flex-direction:column; gap:8px; margin-top:8px; }
+    .ds-image-item { display:flex; align-items:center; gap:10px; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:10px 14px; }
+    .ds-image-thumb { width:48px; height:48px; border-radius:6px; object-fit:cover; background:var(--border); flex-shrink:0; }
+    .ds-image-url { flex:1; font-size:.78rem; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .ds-remove { background:none; border:none; color:var(--red); cursor:pointer; font-size:1rem; padding:4px; flex-shrink:0; }
+    .ds-drop { border:2px dashed var(--border); border-radius:10px; padding:24px; text-align:center; color:var(--muted); font-size:.85rem; cursor:pointer; transition:border-color .2s; }
+    .ds-drop:hover { border-color:var(--green); color:var(--text); }
+    .ds-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px; }
+    .ds-link { font-size:.75rem; color:var(--green); text-decoration:none; }
+    .ds-link:hover { text-decoration:underline; }
+    .config-btn { position:fixed; bottom:20px; right:20px; background:var(--card); border:1px solid var(--border); border-radius:99px; color:var(--muted); cursor:pointer; font-family:inherit; font-size:.8rem; padding:8px 16px; transition:color .2s; }
+    .config-btn:hover { color:var(--text); }
+  </style>
+</head>
+<body>
+<div class="waveform" id="waveform"></div>
+<header>
+  <div class="station-name">📻 Rádio <span>Vibe Coding</span></div>
+  <div class="live-badge offline" id="liveBadge"><span class="dot"></span><span id="liveText">Offline</span></div>
+</header>
+
+<div class="grid">
+
+  <!-- STATUS -->
+  <div class="status-strip">
+    <div class="stat"><div class="stat-value" id="statOuvintes">—</div><div class="stat-label">Ouvintes</div></div>
+    <div class="stat"><div class="stat-value" id="statFila">—</div><div class="stat-label">Na fila</div></div>
+    <div class="stat"><div class="stat-value" id="statLives">—</div><div class="stat-label">Lives</div></div>
+    <div class="stat"><div class="stat-value" id="statHomenagens">—</div><div class="stat-label">Homenagens</div></div>
+  </div>
+
+  <!-- INICIAR LIVE -->
+  <div class="card" id="cardIniciar">
+    <div class="card-label">🎙️ Iniciar Live</div>
+    <div class="form-row"><div><label>Título da live</label><input id="titulo" type="text" placeholder="Ex: Vibe Coding — Sexta à noite" /></div></div>
+    <div class="form-row"><div><label>Descrição (opcional)</label><textarea id="descricao" placeholder="Hoje vamos codar com lofi e React..."></textarea></div></div>
+    <div class="form-row"><div><label>URL YouTube Live</label><input id="youtube_url" type="url" placeholder="https://youtube.com/live/..." /></div></div>
+    <div class="form-row"><div><label>URL Owncast (opcional)</label><input id="owncast_url" type="url" placeholder="https://seu-owncast.com" /></div></div>
+    <div style="margin-top:16px"><button class="btn btn-green" id="btnIniciar" onclick="iniciarLive()">🔴 Iniciar Live</button></div>
+  </div>
+
+  <!-- CONTROLES LIVE -->
+  <div class="card" id="cardControles" style="display:none">
+    <div class="card-label">🎛️ Controles</div>
+    <div id="musicaAtual" style="margin-bottom:16px; color:var(--muted); font-size:.88rem">Nenhuma música tocando ainda</div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="proximaMusica()">⏭️ Próxima Música</button>
+      <button class="btn btn-red"   onclick="encerrarLive()">⏹️ Encerrar Live</button>
+    </div>
+  </div>
+
+  <!-- HOMENAGENS PRONTAS -->
+  <div class="card">
+    <div class="card-label">🎂 Homenagens Prontas</div>
+    <div class="queue-list" id="homenagensList">
+      <div class="homenagem-empty">Nenhuma homenagem pronta</div>
+    </div>
+  </div>
+
+
+  <!-- DATASHOW CONTROLE -->
+  <div class="card">
+    <div class="card-label" style="display:flex;align-items:center;justify-content:space-between">
+      <span>📺 Controle Datashow</span>
+      <a class="ds-link" id="dsLink" href="#" target="_blank">Abrir Datashow ↗</a>
+    </div>
+
+    <div class="form-row">
+      <div>
+        <label>Título do Evento</label>
+        <input id="dsTitulo" type="text" placeholder="Ex: Festa de Aniversário do João" />
+      </div>
+    </div>
+
+    <div class="form-row" style="margin-top:10px">
+      <div>
+        <label>Modo</label>
+        <select id="dsModo" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:.9rem;padding:10px 14px;outline:none">
+          <option value="slideshow">🖼️ Slideshow de imagens</option>
+          <option value="video">🎥 Vídeo</option>
+          <option value="off">⏸️ Desligado</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Slideshow -->
+    <div id="dsSlideshow" style="margin-top:12px">
+      <label>Intervalo entre imagens</label>
+      <input id="dsInterval" type="number" value="5" min="2" max="60" style="margin-top:4px" />
+
+      <label style="margin-top:12px;display:block">Adicionar imagem</label>
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <input id="dsUrlInput" type="url" placeholder="https://... ou cole uma URL de imagem" />
+        <button class="btn btn-ghost" style="width:auto;padding:10px 14px;white-space:nowrap" onclick="dsAdicionarUrl()">+ URL</button>
+      </div>
+
+      <div class="ds-drop" style="margin-top:10px" onclick="document.getElementById('dsFileInput').click()">
+        📁 Clique para upload de foto / arraste aqui
+        <input type="file" id="dsFileInput" accept="image/*,video/*" multiple style="display:none" onchange="dsUploadArquivos(this.files)" />
+      </div>
+
+      <div class="ds-images" id="dsImageList"></div>
+    </div>
+
+    <!-- Vídeo -->
+    <div id="dsVideo" style="margin-top:12px;display:none">
+      <label>URL do vídeo (MP4 direto)</label>
+      <input id="dsVideoUrl" type="url" placeholder="https://...mp4" style="margin-top:4px" />
+    </div>
+
+    <button class="btn btn-green" style="margin-top:16px" onclick="dsSalvar()">💾 Aplicar no Datashow</button>
+  </div>
+
+  <!-- FILA -->
+  <div class="card">
+    <div class="card-label">🎵 Fila de Pedidos</div>
+    <div class="queue-list" id="filaList"><div class="queue-empty">Nenhum pedido ainda</div></div>
+  </div>
+
+</div>
+
+<div id="toast"></div>
+<button class="config-btn" onclick="abrirConfig()">⚙️ Configurações</button>
+
+<div class="modal-backdrop" id="modalConfig">
+  <div class="modal">
+    <h2>⚙️ Configurações</h2>
+    <div class="form-row"><div><label>URL do n8n</label><input id="cfgN8n" type="url" placeholder="https://n8n..." /></div></div>
+    <div class="form-row" style="margin-top:12px"><div><label>URL do Supabase</label><input id="cfgSupa" type="url" placeholder="https://xyzabc.supabase.co" /></div></div>
+    <div class="form-row" style="margin-top:12px"><div><label>Supabase Anon Key</label><input id="cfgKey" type="password" placeholder="eyJ..." /></div></div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="fecharConfig()">Cancelar</button>
+      <button class="btn btn-green" onclick="salvarConfig()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL GERAR VÍDEO (por homenagem) -->
+<div class="modal-backdrop" id="modalVideo">
+  <div class="modal">
+    <h2>🎬 Gerar Vídeo — <span id="vidNomeHomenagem">—</span></h2>
+
+    <label>Adicionar foto por URL</label>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <input id="vidUrlInput" type="url" placeholder="https://... ou cole uma URL de imagem" />
+      <button class="btn btn-ghost" style="width:auto;padding:10px 14px;white-space:nowrap" onclick="vidAdicionarUrl()">+ URL</button>
+    </div>
+
+    <div class="ds-drop" style="margin-top:10px" onclick="document.getElementById('vidFileInput').click()">
+      📁 Clique para upload de fotos / arraste aqui
+      <input type="file" id="vidFileInput" accept="image/*" multiple style="display:none" onchange="vidUploadArquivos(this.files)" />
+    </div>
+
+    <div class="ds-images" id="vidImageList"></div>
+
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="fecharModalVideo()">Cancelar</button>
+      <button class="btn btn-purple" id="btnGerarVideo" onclick="gerarVideo()">🎬 Gerar Vídeo</button>
+    </div>
+
+    <div style="margin-top:18px;padding-top:14px;border-top:1px solid rgba(255,255,255,.1)">
+      <label>Ou já tem o vídeo pronto? (Canva, editor externo, etc.)</label>
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <input id="vidVideoUrlInput" type="url" placeholder="Cole a URL do vídeo (.mp4)" />
+        <button class="btn btn-ghost" style="width:auto;padding:10px 14px;white-space:nowrap" onclick="vidUsarVideoPronto()">✅ Usar</button>
+      </div>
+      <div class="ds-drop" id="vidVideoDrop" style="margin-top:10px" onclick="document.getElementById('vidVideoFileInput').click()">
+        📁 Ou clique para subir o arquivo de vídeo
+        <input type="file" id="vidVideoFileInput" accept="video/*" style="display:none" onchange="vidUploadVideo(this.files)" />
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const CFG = {
+    n8n:  localStorage.getItem('rvc_n8n')  || 'https://n8n-n8n-start.ndjgby.easypanel.host',
+    supa: localStorage.getItem('rvc_supa') || 'https://mpjlxsywadwbjmjkzsbq.supabase.co',
+    key:  localStorage.getItem('rvc_key')  || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1wamx4c3l3YWR3Ymptamt6c2JxIiwicm9sZSI6ImFub24iLCJpYXQiOjE2OTM2OTM5NzcsImV4cCI6MjAwOTI2OTk3N30.-vgnzyYGwmPuS74A-ZjGA4QhM7vGvSGpN-4237pF3vo',
+  };
+
+  // Waveform
+  const waveEl = document.getElementById('waveform');
+  for (let i = 0; i < 40; i++) {
+    const b = document.createElement('div'); b.className = 'bar';
+    b.style.height = (15 + Math.random() * 85) + '%';
+    b.style.setProperty('--dur',   (.5 + Math.random() * .8) + 's');
+    b.style.setProperty('--delay', (Math.random() * .6) + 's');
+    waveEl.appendChild(b);
+  }
+
+  let isLive = false, liveId = null;
+  const agendamentos = {}; // { homenagem_id: timeoutId }
+  const videosGerados = {}; // { homenagem_id: true } — controlado localmente após disparo
+
+  function setLiveState(live) {
+    isLive = live;
+    document.body.classList.toggle('is-live', live);
+    const badge = document.getElementById('liveBadge');
+    badge.className = 'live-badge ' + (live ? 'online' : 'offline');
+    document.getElementById('liveText').textContent = live ? 'Ao Vivo' : 'Offline';
+    document.getElementById('cardIniciar').style.display  = live ? 'none' : '';
+    document.getElementById('cardControles').style.display = live ? '' : 'none';
+  }
+
+  let toastTimer;
+  function toast(msg, type = 'ok') {
+    const el = document.getElementById('toast');
+    el.textContent = msg; el.className = 'show ' + type;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.className = '', 3000);
+  }
+
+  async function post(path, body = {}) {
+    const res = await fetch(CFG.n8n + path, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+    return res.json().catch(() => ({}));
+  }
+
+  async function iniciarLive() {
+    const titulo = document.getElementById('titulo').value.trim();
+    if (!titulo) { toast('Coloque um título para a live', 'err'); return; }
+    const btn = document.getElementById('btnIniciar');
+    btn.disabled = true; btn.textContent = 'Iniciando...';
+    try {
+      const data = await post('/webhook/radio-live-start', {
+        titulo, descricao: document.getElementById('descricao').value.trim(),
+        youtube_url: document.getElementById('youtube_url').value.trim(),
+        owncast_url: document.getElementById('owncast_url').value.trim(),
+      });
+      liveId = data.live_id ?? null;
+      setLiveState(true); toast('🔴 Live iniciada! Ouvintes notificados.');
+      carregarDados();
+    } catch(e) { toast('Erro ao iniciar live', 'err'); }
+    finally { btn.disabled = false; btn.textContent = '🔴 Iniciar Live'; }
+  }
+
+  async function encerrarLive() {
+    if (!confirm('Encerrar a live agora?')) return;
+    try {
+      await post('/webhook/radio-live-end');
+      setLiveState(false); liveId = null;
+      document.getElementById('musicaAtual').textContent = 'Nenhuma música tocando ainda';
+      toast('⏹️ Live encerrada. Ouvintes notificados.'); carregarDados();
+    } catch(e) { toast('Erro ao encerrar live', 'err'); }
+  }
+
+  async function proximaMusica() {
+    try {
+      const data = await post('/webhook/radio-proxima-musica');
+      if (data.status === 'ok' && data.musica) {
+        document.getElementById('musicaAtual').innerHTML = '🎵 <strong>' + data.musica + '</strong>';
+        toast('⏭️ Próxima música anunciada!'); carregarDados();
+      } else { toast(data.message || 'Sem próxima música', 'err'); }
+    } catch(e) { toast('Erro ao avançar fila', 'err'); }
+  }
+
+  async function tocarHomenagem(id, nome) {
+    if (!confirm(`Tocar homenagem para ${nome} agora?`)) return;
+    try {
+      await post('/webhook/radio-tocar-homenagem', { homenagem_id: id });
+      toast(`🎂 Homenagem para ${nome} tocando!`);
+      carregarDados();
+    } catch(e) { toast('Erro ao tocar homenagem', 'err'); }
+  }
+
+  function agendarHomenagem(id, nome, timeInput) {
+    const horario = timeInput.value;
+    if (!horario) { toast('Escolha um horário', 'err'); return; }
+
+    const [h, m] = horario.split(':').map(Number);
+    const agora  = new Date();
+    const alvo   = new Date();
+    alvo.setHours(h, m, 0, 0);
+    if (alvo <= agora) alvo.setDate(alvo.getDate() + 1);
+
+    const diff = alvo - agora;
+    const mins = Math.round(diff / 60000);
+
+    if (agendamentos[id]) { clearTimeout(agendamentos[id]); }
+
+    agendamentos[id] = setTimeout(() => {
+      tocarHomenagem(id, nome);
+      delete agendamentos[id];
+      carregarDados();
+    }, diff);
+
+    toast(`⏰ Agendado para ${horario} (em ${mins} min)`);
+    carregarDados();
+  }
+
+  function cancelarAgendamento(id) {
+    if (agendamentos[id]) {
+      clearTimeout(agendamentos[id]);
+      delete agendamentos[id];
+      toast('❌ Agendamento cancelado');
+      carregarDados();
+    }
+  }
+
+  // ── SUPABASE ───────────────────────────────────
+  async function supaGet(table, params = '') {
+    if (!CFG.key) return null;
+    const res = await fetch(`${CFG.supa}/rest/v1/${table}?${params}`, {
+      headers: { 'apikey': CFG.key, 'Authorization': 'Bearer ' + CFG.key }
+    });
+    return res.json();
+  }
+
+  async function carregarDados() {
+    try {
+      const config = await supaGet('radio_config', 'id=eq.1&select=status,live_id,musica_atual,artista_atual');
+      if (config && config[0]) {
+        const c = config[0];
+        setLiveState(c.status === 'ao_vivo');
+        if (c.musica_atual) {
+          document.getElementById('musicaAtual').innerHTML = '🎵 <strong>' + c.musica_atual + '</strong>';
+        }
+        liveId = c.live_id;
+      }
+
+      const ouvintes = await supaGet('radio_ouvintes', 'ativo=eq.true&select=id');
+      if (ouvintes) document.getElementById('statOuvintes').textContent = ouvintes.length;
+
+      const lives = await supaGet('radio_lives', 'select=id');
+      if (lives) document.getElementById('statLives').textContent = lives.length;
+
+      // Fila
+      const filaParams = liveId
+        ? `live_id=eq.${liveId}&status=eq.aguardando&select=musica,pedido_por&order=created_at.asc`
+        : 'status=eq.aguardando&select=musica,pedido_por&order=created_at.asc&limit=0';
+      const fila = await supaGet('radio_fila_musicas', filaParams);
+      if (fila !== null) {
+        document.getElementById('statFila').textContent = fila.length;
+        renderFila(fila);
+      }
+
+      // Homenagens prontas
+      const homenagens = await supaGet('radio_homenagens',
+        'status=in.(musica_pronta,gerando,tocando,tocado)&select=id,nome_homenageado,titulo_musica,estilo_musica,audio_url,video_url,telefone,status&order=created_at.desc');
+      if (homenagens !== null) {
+        document.getElementById('statHomenagens').textContent = homenagens.filter(h => h.status === 'musica_pronta').length;
+        renderHomenagens(homenagens);
+      }
+
+    } catch(e) { console.warn('Erro Supabase:', e); }
+  }
+
+  function renderFila(fila) {
+    const el = document.getElementById('filaList');
+    if (!fila || fila.length === 0) { el.innerHTML = '<div class="queue-empty">Nenhum pedido ainda</div>'; return; }
+    el.innerHTML = fila.map((f, i) => `
+      <div class="queue-item">
+        <span class="queue-pos">${i+1}</span>
+        <div><div class="queue-music">${f.musica}</div><div class="queue-by">pedido por ${f.pedido_por ?? '—'}</div></div>
+      </div>`).join('');
+  }
+
+  function renderHomenagens(homenagens) {
+    const el = document.getElementById('homenagensList');
+    if (!homenagens || homenagens.length === 0) {
+      el.innerHTML = '<div class="homenagem-empty">Nenhuma homenagem pronta</div>'; return;
+    }
+    el.innerHTML = homenagens.map(h => {
+      const pronta    = h.status === 'musica_pronta';
+      const agendada  = !!agendamentos[h.id];
+      const temVideo  = !!h.video_url;
+      return `
+      <div class="homenagem-item">
+        <div class="homenagem-header">
+          <div class="homenagem-icon">🎂</div>
+          <div class="homenagem-info">
+            <div class="homenagem-nome">${h.nome_homenageado}</div>
+            <div class="homenagem-titulo">${h.titulo_musica}</div>
+            <div class="homenagem-estilo">🎭 ${h.estilo_musica} ${!pronta ? '· ⏳ gerando...' : ''}</div>
+            ${agendada ? `<div style="margin-top:6px"><span class="scheduled-badge">⏰ Agendado</span></div>` : ''}
+            ${temVideo ? `<div style="margin-top:6px"><span class="video-badge">🎬 Vídeo pronto</span></div>` : ''}
+          </div>
+          ${pronta && h.audio_url ? `<a href="${h.audio_url}" target="_blank" style="color:var(--green);font-size:.8rem;white-space:nowrap">▶ Ouvir</a>` : ''}
+        </div>
+        ${(h.status === 'tocado' || h.status === 'tocando') ? `
+        <div class="homenagem-actions" style="margin-top:8px">
+          <button class="btn btn-ghost" onclick="resetarHomenagem('${h.id}','${h.nome_homenageado}')">🔄 Tocar Novamente</button>
+          <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(0,255,136,.05);border:1px solid rgba(0,255,136,.1);border-radius:8px;font-size:.75rem;color:var(--muted)">${h.status === 'tocando' ? '🎵 Tocando agora' : '✅ Já tocada'}</div>
+        </div>` : ''}
+      ${pronta ? `
+        <div class="homenagem-actions-3">
+          <button class="btn btn-purple" onclick="tocarHomenagem('${h.id}','${h.nome_homenageado}')">🎂 Tocar Agora</button>
+          <button class="btn btn-yellow" onclick="abrirModalVideo('${h.id}','${h.nome_homenageado}','${h.telefone || ''}')">🎬 ${temVideo ? 'Gerar de Novo' : 'Gerar Vídeo'}</button>
+          ${agendada
+            ? `<button class="btn btn-ghost" onclick="cancelarAgendamento('${h.id}')">❌ Cancelar</button>`
+            : `<div class="homenagem-schedule">
+                <input type="time" id="time_${h.id}" />
+                <button class="btn btn-ghost" style="width:auto;padding:10px 14px" onclick="agendarHomenagem('${h.id}','${h.nome_homenageado}',document.getElementById('time_${h.id}'))">⏰</button>
+               </div>`
+          }
+        </div>` : ''}
+      </div>`;
+    }).join('');
+  }
+
+  // Config Modal
+  function abrirConfig() {
+    document.getElementById('cfgN8n').value  = CFG.n8n;
+    document.getElementById('cfgSupa').value = CFG.supa;
+    document.getElementById('cfgKey').value  = CFG.key;
+    document.getElementById('modalConfig').classList.add('open');
+  }
+  function fecharConfig() { document.getElementById('modalConfig').classList.remove('open'); }
+  function salvarConfig() {
+    CFG.n8n  = document.getElementById('cfgN8n').value.trim().replace(/\/$/, '');
+    CFG.supa = document.getElementById('cfgSupa').value.trim().replace(/\/$/, '');
+    CFG.key  = document.getElementById('cfgKey').value.trim();
+    localStorage.setItem('rvc_n8n', CFG.n8n);
+    localStorage.setItem('rvc_supa', CFG.supa);
+    localStorage.setItem('rvc_key',  CFG.key);
+    fecharConfig(); toast('Configurações salvas!'); carregarDados();
+  }
+  document.getElementById('modalConfig').addEventListener('click', function(e) { if(e.target===this) fecharConfig(); });
+
+  // ── MODAL GERAR VÍDEO ──────────────────────────
+  let vidFotos = [];
+  let vidHomenagemAtual = null; // { id, nome, telefone }
+
+  function abrirModalVideo(id, nome, telefone) {
+    vidHomenagemAtual = { id, nome, telefone };
+    vidFotos = [];
+    document.getElementById('vidNomeHomenagem').textContent = nome;
+    document.getElementById('vidUrlInput').value = '';
+    document.getElementById('vidVideoUrlInput').value = '';
+    vidRenderImagens();
+    document.getElementById('modalVideo').classList.add('open');
+  }
+
+  function fecharModalVideo() {
+    document.getElementById('modalVideo').classList.remove('open');
+  }
+  document.getElementById('modalVideo').addEventListener('click', function(e) { if(e.target===this) fecharModalVideo(); });
+
+  function vidRenderImagens() {
+    const el = document.getElementById('vidImageList');
+    if (!vidFotos.length) { el.innerHTML = ''; return; }
+    el.innerHTML = vidFotos.map((img, i) => `
+      <div class="ds-image-item">
+        <img class="ds-image-thumb" src="${img.url}" onerror="this.style.display='none'" />
+        <span class="ds-image-url">${img.url}</span>
+        <button class="ds-remove" onclick="vidRemoverImagem(${i})">✕</button>
+      </div>`).join('');
+  }
+
+  function vidAdicionarUrl() {
+    const url = document.getElementById('vidUrlInput').value.trim();
+    if (!url) return;
+    vidFotos.push({ url });
+    document.getElementById('vidUrlInput').value = '';
+    vidRenderImagens();
+  }
+
+  function vidRemoverImagem(i) {
+    vidFotos.splice(i, 1);
+    vidRenderImagens();
+  }
+
+  async function vidUploadArquivos(files) {
+    for (const file of files) {
+      const btn = document.querySelector('#modalVideo .ds-drop');
+      const textoOriginal = btn.textContent;
+      btn.textContent = '⏳ Enviando ' + file.name + '...';
+      try {
+        const ext  = file.name.split('.').pop();
+        const nome = 'hom_' + Date.now() + '_' + Math.random().toString(36).slice(2) + '.' + ext;
+        const res  = await fetch(CFG.supa + '/storage/v1/object/radio_fotos/' + nome, {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + CFG.key, 'Content-Type': file.type },
+          body: file
+        });
+        if (res.ok) {
+          const url = CFG.supa + '/storage/v1/object/public/radio_fotos/' + nome;
+          vidFotos.push({ url });
+          vidRenderImagens();
+          toast('✅ ' + file.name + ' enviado!');
+        } else {
+          toast('Erro ao enviar ' + file.name, 'err');
+        }
+      } catch(e) { toast('Erro de upload', 'err'); }
+      btn.textContent = textoOriginal;
+    }
+  }
+
+  async function gerarVideo() {
+    if (!vidHomenagemAtual) return;
+    if (vidFotos.length === 0) { toast('Adicione pelo menos uma foto', 'err'); return; }
+
+    const btn = document.getElementById('btnGerarVideo');
+    btn.disabled = true; btn.textContent = 'Gerando...';
+    try {
+      await post('/webhook/radio-gerar-video', {
+        homenagem_id: vidHomenagemAtual.id,
+        telefone: vidHomenagemAtual.telefone || '',
+        fotos: vidFotos.map(f => f.url)
+      });
+      toast('🎬 Vídeo sendo gerado! Você será avisado no WhatsApp quando terminar.');
+      fecharModalVideo();
+      carregarDados();
+    } catch(e) {
+      toast('Erro ao gerar vídeo', 'err');
+    } finally {
+      btn.disabled = false; btn.textContent = '🎬 Gerar Vídeo';
+    }
+  }
+
+  async function vidUploadVideo(files) {
+    const file = files[0];
+    if (!file) return;
+    const drop = document.getElementById('vidVideoDrop');
+    const textoOriginal = drop.innerHTML;
+    drop.textContent = '⏳ Enviando ' + file.name + '...';
+    try {
+      const ext  = file.name.split('.').pop();
+      const nome = 'video_' + Date.now() + '_' + Math.random().toString(36).slice(2) + '.' + ext;
+      const res  = await fetch(CFG.supa + '/storage/v1/object/radio_fotos/' + nome, {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + CFG.key, 'Content-Type': file.type },
+        body: file
+      });
+      if (res.ok) {
+        const url = CFG.supa + '/storage/v1/object/public/radio_fotos/' + nome;
+        document.getElementById('vidVideoUrlInput').value = url;
+        toast('✅ Vídeo enviado! Clique em "Usar" para confirmar.');
+      } else {
+        toast('Erro ao enviar vídeo', 'err');
+      }
+    } catch(e) { toast('Erro de upload', 'err'); }
+    drop.innerHTML = textoOriginal;
+  }
+
+  async function vidUsarVideoPronto() {
+    if (!vidHomenagemAtual) return;
+    const video_url = document.getElementById('vidVideoUrlInput').value.trim();
+    if (!video_url) { toast('Cole ou envie a URL do vídeo', 'err'); return; }
+
+    const btn = document.getElementById('btnGerarVideo');
+    btn.disabled = true;
+    try {
+      await post('/webhook/radio-gerar-video', {
+        homenagem_id: vidHomenagemAtual.id,
+        telefone: vidHomenagemAtual.telefone || '',
+        video_url
+      });
+      toast('🎬 Vídeo enviado! Você será avisado no WhatsApp quando terminar.');
+      fecharModalVideo();
+      carregarDados();
+    } catch(e) {
+      toast('Erro ao enviar vídeo', 'err');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  // ── DATASHOW ───────────────────────────────────
+  let dsImagens = [];
+
+  document.getElementById('dsLink').href =
+    'https://lpk-lpk.github.io/radio-vibe-coding/datashow.html';
+
+  document.getElementById('dsModo').addEventListener('change', function() {
+    document.getElementById('dsSlideshow').style.display = this.value === 'slideshow' ? '' : 'none';
+    document.getElementById('dsVideo').style.display     = this.value === 'video'     ? '' : 'none';
+  });
+
+  function dsRenderImagens() {
+    const el = document.getElementById('dsImageList');
+    if (!dsImagens.length) { el.innerHTML = ''; return; }
+    el.innerHTML = dsImagens.map((img, i) => `
+      <div class="ds-image-item">
+        <img class="ds-image-thumb" src="${img.url}" onerror="this.style.display='none'" />
+        <span class="ds-image-url">${img.url}</span>
+        <button class="ds-remove" onclick="dsRemoverImagem(${i})">✕</button>
+      </div>`).join('');
+  }
+
+  function dsAdicionarUrl() {
+    const url = document.getElementById('dsUrlInput').value.trim();
+    if (!url) return;
+    dsImagens.push({ url });
+    document.getElementById('dsUrlInput').value = '';
+    dsRenderImagens();
+  }
+
+  function dsRemoverImagem(i) {
+    dsImagens.splice(i, 1);
+    dsRenderImagens();
+  }
+
+  async function dsUploadArquivos(files) {
+    for (const file of files) {
+      const btn = document.querySelector('#dsSlideshow .ds-drop');
+      btn.textContent = '⏳ Enviando ' + file.name + '...';
+      try {
+        const ext  = file.name.split('.').pop();
+        const nome = 'ds_' + Date.now() + '_' + Math.random().toString(36).slice(2) + '.' + ext;
+        const res  = await fetch(CFG.supa + '/storage/v1/object/radio_fotos/' + nome, {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + CFG.key, 'Content-Type': file.type },
+          body: file
+        });
+        if (res.ok) {
+          const url = CFG.supa + '/storage/v1/object/public/radio_fotos/' + nome;
+          dsImagens.push({ url });
+          dsRenderImagens();
+          toast('✅ ' + file.name + ' enviado!');
+        } else {
+          toast('Erro ao enviar ' + file.name, 'err');
+        }
+      } catch(e) { toast('Erro de upload', 'err'); }
+      btn.textContent = '📁 Clique para upload de foto / arraste aqui';
+    }
+  }
+
+  async function dsSalvar() {
+    const modo      = document.getElementById('dsModo').value;
+    const titulo    = document.getElementById('dsTitulo').value.trim();
+    const interval  = parseInt(document.getElementById('dsInterval').value) || 5;
+    const video_url = document.getElementById('dsVideoUrl').value.trim();
+
+    try {
+      const res = await fetch(CFG.supa + '/rest/v1/radio_datashow?id=eq.1', {
+        method: 'PATCH',
+        headers: {
+          'apikey': CFG.key, 'Authorization': 'Bearer ' + CFG.key,
+          'Content-Type': 'application/json', 'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify({
+          mode: modo, titulo_evento: titulo,
+          images: dsImagens,
+          interval_seconds: interval,
+          video_url: video_url || null,
+          updated_at: new Date().toISOString()
+        })
+      });
+      if (res.ok) { toast('📺 Datashow atualizado!'); }
+      else        { toast('Erro ao salvar datashow', 'err'); }
+    } catch(e) { toast('Erro ao salvar datashow', 'err'); }
+  }
+
+  async function carregarDatashow() {
+    if (!CFG.key) return;
+    try {
+      const res = await fetch(CFG.supa + '/rest/v1/radio_datashow?id=eq.1&select=mode,images,video_url,interval_seconds,titulo_evento', {
+        headers: { 'apikey': CFG.key, 'Authorization': 'Bearer ' + CFG.key }
+      });
+      const data = await res.json();
+      if (data && data[0]) {
+        const d = data[0];
+        document.getElementById('dsModo').value    = d.mode || 'slideshow';
+        document.getElementById('dsTitulo').value  = d.titulo_evento || '';
+        document.getElementById('dsInterval').value = d.interval_seconds || 5;
+        document.getElementById('dsVideoUrl').value = d.video_url || '';
+        dsImagens = Array.isArray(d.images) ? d.images : [];
+        dsRenderImagens();
+        document.getElementById('dsSlideshow').style.display = d.mode === 'slideshow' ? '' : 'none';
+        document.getElementById('dsVideo').style.display     = d.mode === 'video'     ? '' : 'none';
+      }
+    } catch(e) {}
+  }
+
+  async function resetarHomenagem(id, nome) {
+    if (!confirm('Resetar homenagem de ' + nome + ' para tocar novamente?')) return;
+    try {
+      const res = await fetch(CFG.supa + '/rest/v1/radio_homenagens?id=eq.' + id, {
+        method: 'PATCH',
+        headers: {
+          'apikey': CFG.key,
+          'Authorization': 'Bearer ' + CFG.key,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify({ status: 'musica_pronta', tocado_em: null })
+      });
+      if (res.ok) { toast('🔄 Homenagem resetada — pronta para tocar!'); carregarDados(); }
+      else { toast('Erro ao resetar homenagem', 'err'); }
+    } catch(e) { toast('Erro ao resetar homenagem', 'err'); }
+  }
+
+  carregarDados();
+  carregarDatashow();
+  setInterval(carregarDados, 30000);
+</script>
+</body>
+</html>
+a855f7;
       --text:    #e8e8f8; --muted:  #6b6b90;  --radius: 14px;
     }
     body { background:var(--bg); color:var(--text); font-family:'Space Grotesk',sans-serif; min-height:100vh; padding:24px 16px 80px; }
