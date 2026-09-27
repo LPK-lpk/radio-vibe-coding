@@ -95,6 +95,9 @@
     <div class="hom-musica">🎵 <span id="homMusica">—</span></div>
   </div>
 
+  <!-- Vídeo da homenagem (Shotstack/Canva) — com áudio, sem loop -->
+  <video id="homVideoEl" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;z-index:20" autoplay playsinline></video>
+
   <div class="bottom-bar">
     <div class="bar-station">
       <div class="bar-pulse"></div>
@@ -294,20 +297,43 @@
 
   // ── HOMENAGEM ─────────────────────────────────
   let modoAtual = 'normal'; // 'normal' | 'homenagem' | 'musica'
+  let homenagemVideoAtual = null; // vídeo já em exibição, evita reiniciar a cada poll
   function ativarHomenagem(h) {
     esconderVideoMusica();
-    if (modoAtual === 'homenagem') return;
+    const chave = h.video_url || null;
+    if (modoAtual === 'homenagem' && homenagemVideoAtual === chave) return;
     modoAtual = 'homenagem';
-    document.getElementById('homNome').textContent   = h.nome_homenageado || '—';
-    document.getElementById('homMusica').textContent = h.titulo_musica    || '—';
-    document.getElementById('modoHomenagem').classList.add('ativo');
-    iniciarConfete();
+    homenagemVideoAtual = chave;
+
+    const homVideo = document.getElementById('homVideoEl');
+    if (h.video_url) {
+      // Tem vídeo pronto (Shotstack/Canva): mostra ele em tela cheia, com áudio
+      document.getElementById('modoHomenagem').classList.remove('ativo');
+      document.getElementById('confete').innerHTML = '';
+      homVideo.src = h.video_url;
+      homVideo.style.display = 'block';
+      homVideo.currentTime = 0;
+      homVideo.play().catch(() => {});
+    } else {
+      // Sem vídeo: mantém a tela de texto + confete de sempre
+      homVideo.pause();
+      homVideo.style.display = 'none';
+      document.getElementById('homNome').textContent   = h.nome_homenageado || '—';
+      document.getElementById('homMusica').textContent = h.titulo_musica    || '—';
+      document.getElementById('modoHomenagem').classList.add('ativo');
+      iniciarConfete();
+    }
   }
   function desativarHomenagem() {
     if (modoAtual !== 'homenagem') return;
     modoAtual = 'normal';
+    homenagemVideoAtual = null;
     document.getElementById('modoHomenagem').classList.remove('ativo');
     document.getElementById('confete').innerHTML = '';
+    const homVideo = document.getElementById('homVideoEl');
+    homVideo.pause();
+    homVideo.style.display = 'none';
+    homVideo.src = '';
   }
 
   // ── FETCH SUPABASE ────────────────────────────
@@ -347,7 +373,7 @@
     }
 
     // Homenagem tem prioridade máxima
-    const hom = await supaGet('radio_homenagens', 'status=eq.tocando&select=nome_homenageado,titulo_musica&limit=1');
+    const hom = await supaGet('radio_homenagens', 'status=eq.tocando&select=nome_homenageado,titulo_musica,video_url&limit=1');
     if (hom && hom.length > 0) {
       ativarHomenagem(hom[0]);
       return; // não avalia mais nada enquanto homenagem estiver tocando
